@@ -5,6 +5,11 @@ v1 の間は API の削除をしない (deprecated の印だけ)。
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-09
+
+### Changed
+- CPOS の変更に追随 (operation の増減なし)。評価の全体承認 (`care-review-approvals:write`) は、正式版と同じ内容の作業版を承認したとき、新しい版も計画の準備の予約も作らず `unchanged: true` を返す (`approvalRef`・`servicePlanPreparationRefs` は付かない)。全体承認では作業版がそのまま正式版になり `currentWorkingBase` は null になる。AI の状態の取得には、承認した評価からの計画の準備の状況も加わった。
+
 ## [0.13.0] - 2026-11-09
 
 ### Added

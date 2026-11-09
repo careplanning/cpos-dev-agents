@@ -1,6 +1,6 @@
 {
   "name": "@cpos/kit",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "private": true,
   "description": "CPOS の上でアプリを作る人に配る共通開発基盤。このリポジトリそのものが npm パッケージ (git 参照で入れる)",
   "type": "module",

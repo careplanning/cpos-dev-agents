@@ -1,5 +1,5 @@
 // 生成物。kit の保守者が生成器 (gen-api) で spec/cpos-openapi.json から作る。手で編集しない。
-// 生成元: CPOS OpenAPI 0.1.0 / revision main@8b68de48 / 2026-11-09 / 1656 operations
+// 生成元: CPOS OpenAPI 0.1.0 / revision main@8ef93a17 / 2026-11-09 / 1656 operations
 
 export interface CposApi_app {
   alerts: {

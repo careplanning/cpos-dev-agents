@@ -4,11 +4,11 @@
   "title": "CPOS (Care Planning OS) API",
   "version": "0.1.0",
   "description": "CPOS の HTTP API (公式 OpenAPI の写し)。kit の client はこれから生成する。",
-  "x-cpos-revision": "main@8b68de48"
+  "x-cpos-revision": "main@8ef93a17"
  },
  "x-cpos-kit": {
   "version": "0.1.0",
-  "revision": "main@8b68de48",
+  "revision": "main@8ef93a17",
   "fetchedAt": "2026-11-09",
   "operations": 1656,
   "note": "公式 OpenAPI の写し。内部情報 (x-cpos-source 等) を落としてある。kit の保守者が生成器 (gen-api) で作る。手で編集しない"
@@ -20660,7 +20660,7 @@
     ],
     "x-cpos-auth": "session",
     "x-cpos-scope": null,
-    "description": "資料の読み取り (CPOS が Gemini を呼ぶ) と、日々の記録からの評価の更新候補 (CPOS が AIケアプランを呼ぶ) について、設定の有無、最後の成功・失敗の時刻と符号、定期処理の最終実行を返す。キー・接続先 URL・署名鍵の値、利用者・資料の内容は返さない。"
+    "description": "資料の読み取り (CPOS が Gemini を呼ぶ) と、日々の記録からの評価の更新候補 (CPOS が AIケアプランを呼ぶ) と、承認した評価からの計画の準備 (定期処理 service-plan-preparation-due) について、設定の有無、最後の成功・失敗の時刻と符号、定期処理の最終実行を返す。計画の準備には、5 分以上待っている承認の予約と準備の件数 (backlog。100 件で打ち切り) も付ける。キー・接続先 URL・署名鍵の値、利用者・資料の内容は返さない。"
    }
   },
   "/api/mapping-profiles": {
@@ -46912,7 +46912,7 @@
     ],
     "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": "care-review-approvals:write",
-    "description": "職員の承認権限、正式本文・作業本文・保存先定義の現在の版を同時に検査します。App Token は承認者になれません。",
+    "description": "職員の承認権限、正式本文・作業本文・保存先定義の現在の版を同時に検査します。App Token は承認者になれません。全体の承認では作業版がそのまま正式版になり、currentWorkingBase は null になります。正式版と同じ内容の作業版を全体承認したときは、新しい版も計画の準備の予約も作らず、作業版を閉じて unchanged: true を返します (approvalRef・servicePlanPreparationRefs は付きません)。",
     "requestBody": {
      "required": true,
      "content": {
