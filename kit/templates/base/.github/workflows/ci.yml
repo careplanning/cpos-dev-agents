@@ -1,6 +1,6 @@
 # cpos-kit が所有する (update で置き換わる)。
-# 共通 CI の実体は cpos-kit 側 (loogo-inc/cpos-kit/.github/workflows/ci.yml@v1)。
-# cpos-kit が GitHub に置かれるまでは、下のローカル版が動く。
+# 手順の正本は cpos-kit の kit/ci/standard.json。CPOS の他のアプリと同じ標準 CI に、kit の検査 (validate) を足したもの。
+# CPOS の Cloud Build の CI に移ったリポジトリ (変数 EXTERNAL_CI_ACTIVE=true) では、同じ手順をそちらが走らせるので、ここは動かない。
 name: CI
 on:
   pull_request:
@@ -8,12 +8,23 @@ on:
     branches: [main]
 jobs:
   verify:
+    if: vars.EXTERNAL_CI_ACTIVE != 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - run: npm install   # package-lock.json を commit したら npm ci に変えてよい
+      - name: Install
+        run: npm ci --no-audit --no-fund
       - run: npx cpos-kit validate
-      - run: npm test
+      - name: Dependency audit
+        run: npm audit --omit=dev --audit-level="high"
+      - name: SBOM (CycloneDX)
+        run: npm sbom --sbom-format cyclonedx --omit dev > sbom.cyclonedx.json
+      - name: Typecheck
+        run: npm run typecheck --if-present
+      - name: Test
+        run: npm run test --if-present
+      - name: Build
+        run: npm run build --if-present

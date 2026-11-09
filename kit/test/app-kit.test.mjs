@@ -283,3 +283,21 @@ test('app-kit: Express でも token モードのログイン画面と受け口�
   assert.equal(inside.next, true); assert.equal(inside.session.via, 'token');
   function headersOf(r) { return r.headers; }
 });
+
+test('KIT 模擬サーバ: OAuth で管理操作のスコープを要求すると本物と同じく invalid_scope で戻す', async () => {
+  const fake = createFakeCpos();
+  const redirectUri = 'http://127.0.0.1:3000/oauth/callback';
+  const { challenge } = pkcePair();
+  const clientId = await registerOAuthClient({ cposBaseUrl: fake.baseUrl, redirectUri, clientName: 't', fetch: fake.fetch });
+  const ask = (scope) => fake.fetch(`${fake.baseUrl}/oauth/authorize?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&state=s&code_challenge=${challenge}&code_challenge_method=S256&scope=${encodeURIComponent(scope)}`, { redirect: 'manual' });
+  for (const s of ['apps:admin', 'users:admin', 'organizations:provision']) {
+    const r = await ask(`facilities:read ${s}`);
+    assert.equal(r.status, 302, s);
+    const to = new URL(r.headers.get('location'));
+    assert.equal(to.origin + to.pathname, redirectUri);
+    assert.equal(to.searchParams.get('error'), 'invalid_scope');
+    assert.equal(to.searchParams.get('state'), 's');
+    assert.equal(to.searchParams.get('code'), null);
+  }
+  assert.equal((await ask('facilities:read')).status, 200, 'ふつうのスコープは同意 (誰として入るか) の画面に進む');
+});

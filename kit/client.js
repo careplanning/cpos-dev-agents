@@ -118,6 +118,7 @@ export class CposClientError extends Error {
 function hintFor(status, error, body) {
   const t = String(error ?? '');
   if (status === 401) return 'トークンが無いか無効です。App Token (cpos_app_*) を Secret Manager か env から解決して Bearer で送ってください。ブラウザからは送れません。管理画面のセッション Cookie でしか呼べない API (cpos.session.*) なら、ログインを引き継ぐアプリから cookie を渡します。';
+  if (status === 403 && body?.code === 'pat_subject_forbidden') return 'PAT (cpos_pat_*) は発行した本人のロールの範囲でしか効きません。スコープを足しても通りません。サーバ間の呼び出しは App Token にするか、その操作をできる人の PAT を使ってください。';
   if (status === 403 && (body?.requiredScope || /スコープ/.test(t))) return `スコープ不足です (${body?.requiredScope ?? '?'})。cpos.manifest.json の apiTokenScopes に足して再登録し、App Token を再発行してください。`;
   if (status === 403) return 'この事業所か操作はトークン (またはログインユーザー) に許可されていません。facilities.list() にある事業所か確かめ、CPOS 管理者に相談してください。';
   if (status === 404 && /facility|事業所/.test(t)) return '存在しない事業所 ID です (本物は 404、許可されていない事業所は 403)。facilities.list() の id を使ってください。';

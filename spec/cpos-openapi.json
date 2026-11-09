@@ -4,13 +4,13 @@
   "title": "CPOS (Care Planning OS) API",
   "version": "0.1.0",
   "description": "CPOS の HTTP API (公式 OpenAPI の写し)。kit の client はこれから生成する。",
-  "x-cpos-revision": "main@13ab4bc8"
+  "x-cpos-revision": "main@8b68de48"
  },
  "x-cpos-kit": {
   "version": "0.1.0",
-  "revision": "main@13ab4bc8",
-  "fetchedAt": "2026-10-21",
-  "operations": 1606,
+  "revision": "main@8b68de48",
+  "fetchedAt": "2026-11-09",
+  "operations": 1656,
   "note": "公式 OpenAPI の写し。内部情報 (x-cpos-source 等) を落としてある。kit の保守者が生成器 (gen-api) で作る。手で編集しない"
  },
  "paths": {
@@ -106,10 +106,16 @@
     },
     "security": [
      {
+      "bearerToken": []
+     },
+     {
+      "oauth2": []
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
+    "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": null
    }
   },
@@ -137,10 +143,16 @@
     },
     "security": [
      {
+      "bearerToken": []
+     },
+     {
+      "oauth2": []
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
+    "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": null,
     "x-mcp": {
      "name": "platform_me",
@@ -516,7 +528,45 @@
   "/api/triggers/tasks/backup-due": {
    "post": {
     "operationId": "post_api_triggers_tasks_backup_due",
-    "summary": "定時タスク: アプリ内のバックアップの、時刻を過ぎた戦略を実行して終わるまで待つ (件数だけ返す)",
+    "summary": "定時タスク (使わない): アプリ内のバックアップは 2026-10-29 に止めた。何も実行せず件数 0 で返す",
+    "tags": [
+     "トリガー"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [],
+    "x-cpos-auth": "signed",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/triggers/tasks/staging-copy-due": {
+   "post": {
+    "operationId": "post_api_triggers_tasks_staging_copy_due",
+    "summary": "定時タスク: 本番データのコピー (ステージングだけ) の予約・定期実行を始め、実行中のコピーを進める",
     "tags": [
      "トリガー"
     ],
@@ -3145,10 +3195,16 @@
     },
     "security": [
      {
+      "bearerToken": []
+     },
+     {
+      "oauth2": []
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
+    "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": null
    }
   },
@@ -3873,6 +3929,84 @@
     }
    }
   },
+  "/api/robotics/device/authorize": {
+   "post": {
+    "operationId": "post_api_robotics_device_authorize",
+    "summary": "機体が登録を申し込む (RFC 8628。QR と短いコードを受け取る)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [],
+    "x-cpos-auth": "signed",
+    "x-cpos-scope": null,
+    "description": "DPoP の証明で機体の鍵を束縛する。応答の device_code は機体だけが持ち、user_code と verification_uri_complete を QR として画面に出す。環境・simulation・事業所は CPOS の設定で絞る。",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/x-www-form-urlencoded": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/device/token": {
+   "post": {
+    "operationId": "post_api_robotics_device_token",
+    "summary": "機体の資格情報を受け取る・更新する (device_code / refresh_token)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [],
+    "x-cpos-auth": "signed",
+    "x-cpos-scope": null,
+    "description": "登録時と同じ鍵の DPoP 証明が要る。authorization_pending / slow_down / access_denied / expired_token を返す。更新トークンは使うたびに回転し、使用済みの再使用はその機体の資格情報を止める。",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/x-www-form-urlencoded": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/records-pipeline/process": {
    "post": {
     "operationId": "post_api_records_pipeline_process",
@@ -4065,11 +4199,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "filing:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "filing:read"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null,
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "filing:read",
     "requestBody": {
      "required": false,
      "content": {
@@ -4107,11 +4251,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "filing:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "filing:read"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null,
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "filing:read",
     "requestBody": {
      "required": false,
      "content": {
@@ -4149,11 +4303,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "filing:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "filing:write"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null,
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "filing:write",
     "requestBody": {
      "required": false,
      "content": {
@@ -4191,11 +4355,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "filing:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "filing:write"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null,
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "filing:write",
     "requestBody": {
      "required": false,
      "content": {
@@ -4233,11 +4407,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "filing:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "filing:read"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null,
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "filing:read",
     "requestBody": {
      "required": false,
      "content": {
@@ -4275,11 +4459,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "filing:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "filing:write"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null,
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "filing:write",
     "requestBody": {
      "required": false,
      "content": {
@@ -4317,11 +4511,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "filing:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "filing:write"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null,
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "filing:write",
     "requestBody": {
      "required": false,
      "content": {
@@ -6385,10 +6589,16 @@
     },
     "security": [
      {
+      "bearerToken": []
+     },
+     {
+      "oauth2": []
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
+    "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": null
    }
   },
@@ -12736,6 +12946,141 @@
     "x-cpos-scope": "welfare-equipment:read"
    }
   },
+  "/api/welfare-equipment/v2/logistics/{jobId}/lines/{lineId}/photos": {
+   "post": {
+    "operationId": "post_api_welfare_equipment_v2_logistics_jobId_lines_lineId_photos",
+    "summary": "福祉用具 v2: 納品明細の写真を 1 枚登録 (base64 JSON。本体は GCS、明細の photos に id を足す。実施完了の後も可)",
+    "tags": [
+     "福祉用具"
+    ],
+    "parameters": [
+     {
+      "name": "jobId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "lineId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "welfare-equipment:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "welfare-equipment:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "welfare-equipment:write",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/welfare-equipment/v2/logistics/{jobId}/lines/{lineId}/photos/{photoId}": {
+   "get": {
+    "operationId": "get_api_welfare_equipment_v2_logistics_jobId_lines_lineId_photos_photoId",
+    "summary": "福祉用具 v2: 納品明細の写真 1 枚 (base64 JSON)",
+    "tags": [
+     "福祉用具"
+    ],
+    "parameters": [
+     {
+      "name": "jobId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "lineId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "photoId",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "welfare-equipment:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "welfare-equipment:read"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "welfare-equipment:read"
+   }
+  },
   "/api/welfare-equipment/v2/monitorings": {
    "get": {
     "operationId": "get_api_welfare_equipment_v2_monitorings",
@@ -15636,7 +15981,7 @@
     ],
     "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": "welfare-equipment:read",
-    "description": "document の legalReview { status, pending } と legalReviewStatus は、文書が保存した要件プロファイルの版 (無ければ保存版の様式の版) を 文書の日付で判定する (LEGAL-REVIEW-04。現行のプロファイルで代用しない)。版を解決できない鍵は legalReviewStatus が pending-institutional-review (null にしない)。版を保存していない文書で保存版の様式を読めないとき (POST /v2/plans が保存する we-rental-plan の版 1 など) も、GET /api/care-documents/v1/:id と同じく legalReview は pending、legalReviewStatus は pending-institutional-review。institutionally-reviewed は legalReview.status が reviewed のときだけ。",
+    "description": "document の legalReview { status, pending } と legalReviewStatus は、文書が保存した要件プロファイルの版 (無ければ保存版の様式の版) を 文書の日付で判定する (LEGAL-REVIEW-04。現行のプロファイルで代用しない)。版を解決できない鍵は legalReviewStatus が pending-institutional-review (null にしない)。版を保存していない文書で保存版の様式を読めないとき (様式が登録されていない組織で POST /v2/plans が保存する we-rental-plan の版 1 など) も、GET /api/care-documents/v1/:id と同じく legalReview は pending、legalReviewStatus は pending-institutional-review。institutionally-reviewed は legalReview.status が reviewed のときだけ。",
     "requestBody": {
      "required": false,
      "content": {
@@ -20899,11 +21244,17 @@
     },
     "security": [
      {
+      "bearerToken": []
+     },
+     {
+      "oauth2": []
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": "*"
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": null
    }
   },
   "/api/device/facilities": {
@@ -21188,11 +21539,17 @@
     },
     "security": [
      {
+      "bearerToken": []
+     },
+     {
+      "oauth2": []
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": "*"
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": null
    }
   },
   "/api/device/releases": {
@@ -21219,10 +21576,16 @@
     },
     "security": [
      {
+      "bearerToken": []
+     },
+     {
+      "oauth2": []
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
+    "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": null
    }
   },
@@ -22141,6 +22504,57 @@
     ],
     "x-cpos-auth": "session",
     "x-cpos-scope": null
+   }
+  },
+  "/api/auth-users/{id}/email": {
+   "post": {
+    "operationId": "post_api_auth_users_id_email",
+    "summary": "ログインアカウント: メールアドレスの差し替え (super_admin のみ。ID・記録・担当はそのまま)",
+    "tags": [
+     "ログインアカウント"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
    }
   },
   "/api/auth-users/{id}/google-account": {
@@ -26320,6 +26734,680 @@
     "description": "ロボット用 App Token 専用。トークンの app に紐づき、許可事業所内にあるロボットだけを返す。"
    }
   },
+  "/api/robotics/device/me": {
+   "get": {
+    "operationId": "get_api_robotics_device_me",
+    "summary": "機体自身の登録 (許可された機能・版・環境)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [],
+    "x-cpos-auth": "signed",
+    "x-cpos-scope": null
+   }
+  },
+  "/api/robotics/device/rotate-key": {
+   "post": {
+    "operationId": "post_api_robotics_device_rotate_key",
+    "summary": "機体の鍵を交換する (今の鍵で呼び、新しい鍵の証明を本文に入れる)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [],
+    "x-cpos-auth": "signed",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/device/deregister": {
+   "post": {
+    "operationId": "post_api_robotics_device_deregister",
+    "summary": "機体自身が登録を解除する (廃棄・引き渡し)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [],
+    "x-cpos-auth": "signed",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/device/verification": {
+   "get": {
+    "operationId": "get_api_robotics_device_verification",
+    "summary": "QR の機体登録の確認 (職員のスマートフォン画面)。職員の対話操作のみ",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "user_code",
+      "in": "query",
+      "required": true,
+      "description": "機体の画面のコード (XXXX-XXXX)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:read"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:read",
+    "description": "機体の自己申告・鍵の識別・環境・求めた機能・期限を返す。管理画面にログインした職員だけ (トークン・MCP 不可)。"
+   }
+  },
+  "/api/robotics/device/verification/approve": {
+   "post": {
+    "operationId": "post_api_robotics_device_verification_approve",
+    "summary": "機体の登録を承認する (機体は停止中で登録される)。職員の対話操作のみ",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:write",
+    "description": "コードの見比べ (codeConfirmed: true)・事業所 (facilityIds で複数可。facilityId 1 つも従来どおり)・許可する機能を職員が選ぶ。選んだすべての事業所で台帳の書き込み権限が要る。事業所ごとにロボットの記録ができ、運用の開始は事業所ごとの別の操作。",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/device/verification/deny": {
+   "post": {
+    "operationId": "post_api_robotics_device_verification_deny",
+    "summary": "機体の登録を承認しない。職員の対話操作のみ",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:read"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:read",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/device/registrations": {
+   "get": {
+    "operationId": "get_api_robotics_device_registrations",
+    "summary": "機体登録の一覧 (秘密は出さない)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "facilityId",
+      "in": "query",
+      "required": false,
+      "description": "事業所 ID (X-Cpos-Facility-Id ヘッダでも可)。admin 以外のセッションは必須",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:read"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:read"
+   }
+  },
+  "/api/robotics/device/registrations/{id}": {
+   "get": {
+    "operationId": "get_api_robotics_device_registrations_id",
+    "summary": "機体登録を 1 件 (許可・鍵の履歴・担当)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "機体登録 ID (rdr_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:read"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:read"
+   }
+  },
+  "/api/robotics/device/registrations/{id}/revoke": {
+   "post": {
+    "operationId": "post_api_robotics_device_registrations_id_revoke",
+    "summary": "機体の登録を解除する (失効。次の要求から使えない)。職員の対話操作のみ",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "機体登録 ID (rdr_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:write",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/device/registrations/{id}/permissions": {
+   "post": {
+    "operationId": "post_api_robotics_device_registrations_id_permissions",
+    "summary": "機体に許可する機能を変える。職員の対話操作のみ",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "機体登録 ID (rdr_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:write",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/device/registrations/{id}/manager": {
+   "post": {
+    "operationId": "post_api_robotics_device_registrations_id_manager",
+    "summary": "機体登録の担当者を変える。職員の対話操作のみ",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "機体登録 ID (rdr_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:write",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/device/registrations/{id}/facilities": {
+   "post": {
+    "operationId": "post_api_robotics_device_registrations_id_facilities",
+    "summary": "登録済みのロボットを、ほかの事業所でも使えるようにする。職員の対話操作のみ",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "機体登録 ID (rdr_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:write",
+    "description": "body: { facilityId, expectedVersion? }。その事業所にロボットの記録ができ (停止中)、事業所ごとに稼働開始する。鍵と許可する機能は変わらない。その事業所の登録の権限が要る。",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/device/registrations/{id}/facilities/remove": {
+   "post": {
+    "operationId": "post_api_robotics_device_registrations_id_facilities_remove",
+    "summary": "ロボットを 1 つの事業所から外す (最後の事業所は外せない)。職員の対話操作のみ",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "機体登録 ID (rdr_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:write",
+    "description": "body: { facilityId, expectedVersion? }。その事業所のロボットの記録は停止中で残り、資格情報から外れる。ほかの事業所では今までどおり使える。その事業所の登録の権限が要る。",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/robotics/robots": {
    "get": {
     "operationId": "get_api_robotics_robots",
@@ -26371,7 +27459,9 @@
         "fall_detection",
         "delivery",
         "recreation",
-        "reception"
+        "reception",
+        "toileting_assist",
+        "wheelchair_transport"
        ]
       }
      }
@@ -26839,7 +27929,7 @@
       "name": "purposes",
       "in": "query",
       "required": true,
-      "description": "確認する同意目的 (カンマ区切り): physical_assist_bathing / physical_assist_transfer / conversation / audio_recording / camera_recording / face_recognition / vitals_measurement / watch_monitoring / data_secondary_use",
+      "description": "確認する同意目的 (カンマ区切り): physical_assist_bathing / physical_assist_transfer / conversation / audio_recording / camera_recording / face_recognition / vitals_measurement / watch_monitoring / data_secondary_use / physical_assist_toileting",
       "schema": {
        "type": "string"
       }
@@ -26981,7 +28071,8 @@
         "face_recognition",
         "vitals_measurement",
         "watch_monitoring",
-        "data_secondary_use"
+        "data_secondary_use",
+        "physical_assist_toileting"
        ]
       }
      },
@@ -27375,6 +28466,10 @@
         "watch_patrol",
         "recreation",
         "delivery",
+        "toileting_assist",
+        "wheelchair_transport",
+        "check_in",
+        "exercise_demo",
         "other"
        ]
       }
@@ -27517,6 +28612,57 @@
       "in": "query",
       "required": false,
       "description": "予定日 (YYYY-MM-DD、既定は今日)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:act"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:act"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:act"
+   }
+  },
+  "/api/robotics/tasks/{id}/state": {
+   "get": {
+    "operationId": "get_api_robotics_tasks_id_state",
+    "summary": "ロボットが持っていた作業の今の状態を読み直す (再起動・応答消失の後。ロボット用)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "作業 ID (rtk_*)",
       "schema": {
        "type": "string"
       }
@@ -28594,6 +29740,433 @@
       }
      }
     }
+   }
+  },
+  "/api/robotics/tasks/{id}/cancel-ack": {
+   "post": {
+    "operationId": "post_api_robotics_tasks_id_cancel_ack",
+    "summary": "取消を受け取ったことと、そのときの状態を報告する (ロボット用)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "作業 ID (rtk_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:act"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:act"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:act",
+    "description": "outcome は stopped / handed_over / not_started / completed_before_cancel / unknown。止まったと確かめられない報告は職員へのアラートになる。",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/observations": {
+   "post": {
+    "operationId": "post_api_robotics_observations",
+    "summary": "ロボットが取得した情報を送る (確認候補。最大 50 件、clientObservationId で冪等)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:act"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:act"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:act",
+    "description": "本人は作業から決まる (ロボットの名乗りは照合だけ)。値・単位・取得時刻・取得方法を元のまま残し、同意は取得時と受信時の両方で判定する。記録にはならない (職員の確認が要る)。",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   },
+   "get": {
+    "operationId": "get_api_robotics_observations",
+    "summary": "ロボットからの確認候補の一覧 (職員)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "facilityId",
+      "in": "query",
+      "required": false,
+      "description": "事業所 ID (X-Cpos-Facility-Id ヘッダでも可)。admin 以外のセッションは必須",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "masterUserId",
+      "in": "query",
+      "required": false,
+      "description": "利用者の不変 ID (mu_*)",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "taskId",
+      "in": "query",
+      "required": false,
+      "description": "作業 ID (rtk_*)",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "reviewStatus",
+      "in": "query",
+      "required": false,
+      "description": "確認の状態 (pending / adopted / held / rejected / superseded / not_applicable)",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "description": "最大件数 (既定 200、上限 1000)",
+      "schema": {
+       "type": "integer"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robot-tasks:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "robot-tasks:read"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robot-tasks:read"
+   }
+  },
+  "/api/robotics/observations/{id}": {
+   "get": {
+    "operationId": "get_api_robotics_observations_id",
+    "summary": "ロボットからの確認候補を 1 件",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "観察 ID (rob_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robot-tasks:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "robot-tasks:read"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robot-tasks:read"
+   }
+  },
+  "/api/robotics/observations/{id}/review": {
+   "post": {
+    "operationId": "post_api_robotics_observations_id_review",
+    "summary": "確認候補を記録にする・直して記録にする・保留・記録にしない (職員の対話操作のみ)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "観察 ID (rob_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robot-tasks:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robot-tasks:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robot-tasks:write",
+    "description": "採用すると測定は CareRecord の測定欄へ、それ以外は支援経過へ、観察 1 件につき 1 件だけ記録する。サービスは作業のもの、無ければ事業所が 1 つだけ提供しているもの (推測で選ばない)。",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/observations/review-batch": {
+   "post": {
+    "operationId": "post_api_robotics_observations_review_batch",
+    "summary": "確認が要る点の無い確認候補をまとめて記録にする (職員の対話操作のみ)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robot-tasks:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robot-tasks:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robot-tasks:write",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/observations-state": {
+   "get": {
+    "operationId": "get_api_robotics_observations_state",
+    "summary": "ロボットが送った情報の受け取りと確認の状態 (ロボット用)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "robotId",
+      "in": "query",
+      "required": true,
+      "description": "ロボット ID (rbt_*)。本文の robotId でも可",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "taskId",
+      "in": "query",
+      "required": false,
+      "description": "作業 ID (rtk_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:act"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:act"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:act"
    }
   },
   "/api/robotics/sessions": {
@@ -29792,6 +31365,220 @@
     ],
     "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": "robots:act"
+   }
+  },
+  "/api/robotics/robot-floor-plans": {
+   "get": {
+    "operationId": "get_api_robotics_robot_floor_plans",
+    "summary": "ロボットの事業所の平面図と、利用者がいつもいる場所 (ロボット用。ID と場所のコードだけ。氏名は返さない)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "robotId",
+      "in": "query",
+      "required": false,
+      "description": "ロボット ID (rbt_*)。App Token のロボットは必須。QR で登録したロボットは省略可 (すべての事業所を返す)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:act"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:act"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:act"
+   }
+  },
+  "/api/robotics/floor-plan": {
+   "get": {
+    "operationId": "get_api_robotics_floor_plan",
+    "summary": "事業所の平面図 (場所と止まる位置) と、利用者がいつもいる場所 (ID だけ)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "facilityId",
+      "in": "query",
+      "required": true,
+      "description": "事業所 ID (X-Cpos-Facility-Id ヘッダでも可)。admin 以外のセッションは必須",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:read"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:read"
+   },
+   "put": {
+    "operationId": "put_api_robotics_floor_plan",
+    "summary": "事業所の平面図を保存 (利用者が決められている場所は消せない: 409 place-in-use)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robots:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robots:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robots:write",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/robotics/floor-plan/users/{masterUserId}": {
+   "put": {
+    "operationId": "put_api_robotics_floor_plan_users_masterUserId",
+    "summary": "利用者がいつもいる場所 (平面図の場所・席) を決める / 外す (placeCode: null)",
+    "tags": [
+     "robotics"
+    ],
+    "parameters": [
+     {
+      "name": "masterUserId",
+      "in": "path",
+      "required": true,
+      "description": "利用者の不変 ID (mu_*)",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "robot-tasks:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "robot-tasks:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "robot-tasks:write",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
    }
   },
   "/api/trainings": {
@@ -31297,21 +33084,11 @@
     },
     "security": [
      {
-      "bearerToken": [
-       "facilities:read"
-      ]
-     },
-     {
-      "oauth2": [
-       "facilities:read"
-      ]
-     },
-     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "bearer-or-session",
-    "x-cpos-scope": "facilities:read"
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null
    }
   },
   "/api/help/ask": {
@@ -32061,7 +33838,7 @@
     ],
     "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": "master-users:read",
-    "description": "ふりがな順。`limit` は **絞り込みのあと** に効く。\n\n担当ケアマネで絞ったときは、応答見出し `X-Cpos-Care-Manager-Filter: applied` を返す。**この見出しが無ければ絞り込みは効いていない** (古い版はクエリを無視して全員返す)。利用側はこれを確かめること。職員台帳が引けないときは 503 で断る (全員は返さない)。\n\n`assignedDuring=YYYY-MM` は、その月に所属期間 (開始日〜終了日) が重なる利用者を返す (請求の月の名簿)。終了日の無い終わった所属は期間が分からないので載せず、その行数を応答見出し `X-Cpos-Excluded-Inactive` で返す (assignedDuring を受けたときは 0 でも返す)。`activeOnly=true` との併用は 400。",
+    "description": "ふりがな順。`limit` は **絞り込みのあと** に効く。\n\n担当ケアマネで絞ったときは、応答見出し `X-Cpos-Care-Manager-Filter: applied` を返す。**この見出しが無ければ絞り込みは効いていない** (古い版はクエリを無視して全員返す)。利用側はこれを確かめること。職員台帳が引けないときは 503 で断る (全員は返さない)。\n\n`assignedDuring=YYYY-MM` は、その月に所属期間 (開始日〜終了日) が重なる利用者を返す (請求の月の名簿)。有効のままの所属は日付によらず載せる (終了日・開始日で判定するのは有効を外した所属だけ)。終了日の無い終わった所属は期間が分からないので載せず、その行数を応答見出し `X-Cpos-Excluded-Inactive` で返す (assignedDuring を受けたときは 0 でも返す)。`activeOnly=true` との併用は 400。",
     "x-mcp": {
      "name": "master_users_list",
      "readOnly": true,
@@ -33789,6 +35566,48 @@
    "post": {
     "operationId": "post_api_master_users",
     "summary": "利用者マスタ: 作成",
+    "tags": [
+     "利用者マスタ"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/master-users/likely-same": {
+   "post": {
+    "operationId": "post_api_master_users_likely_same",
+    "summary": "利用者マスタ: 登録の前に、同じ方らしい登録 (字体違いの名前・ふりがな・被保険者番号) を探す (likely-same)",
     "tags": [
      "利用者マスタ"
     ],
@@ -43890,6 +45709,15 @@
         "welfare-equipment"
        ]
       }
+     },
+     {
+      "name": "subjectSearch",
+      "in": "query",
+      "required": false,
+      "description": "旧版 (共通取り込み画面 1.0.9) のための検索。検索語がURLに残るので、新しい呼び出しは POST /subject-candidates を使います。省略時は従来の先頭100人。200文字以内。",
+      "schema": {
+       "type": "string"
+      }
      }
     ],
     "responses": {
@@ -45693,6 +47521,453 @@
       "application/json": {
        "schema": {
         "$ref": "#/components/schemas/IntakeSourceReceiptInput"
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/care-management/v2/sources/receipts/{id}/registration": {
+   "get": {
+    "operationId": "get_api_care_management_v2_sources_receipts_id_registration",
+    "summary": "未同定資料の新規登録可否と同姓同名の件数を確認",
+    "tags": [
+     "共通資料取り込み・計画準備"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "facilityId",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "serviceDomain",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "contextId",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "登録可否 (件数は常に0。同姓同名の件数は POST .../registration-check)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "available",
+          "candidateCount"
+         ],
+         "properties": {
+          "available": {
+           "type": "boolean"
+          },
+          "candidateCount": {
+           "type": "integer",
+           "minimum": 0
+          }
+         },
+         "additionalProperties": false
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": "care-documents:read",
+    "description": "職員の現在のログインで受領原本を確認します。新規登録可否は管理者・マネージャーだけに返し、他事業所の氏名は返しません。"
+   },
+   "post": {
+    "operationId": "post_api_care_management_v2_sources_receipts_id_registration",
+    "summary": "番号未着の利用者を既存マスタに登録し、同じ受領原本へ結び付ける",
+    "tags": [
+     "共通資料取り込み・計画準備"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "facilityId",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "serviceDomain",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "contextId",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "同じ原本・登録した本人・更新後の受付context",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "receipt",
+          "subject",
+          "context"
+         ],
+         "properties": {
+          "receipt": {
+           "$ref": "#/components/schemas/IntakeSourceReceipt"
+          },
+          "context": {
+           "$ref": "#/components/schemas/IntakeContext"
+          },
+          "subject": {
+           "type": "object",
+           "required": [
+            "masterUserId",
+            "insuredNumber",
+            "label"
+           ],
+           "properties": {
+            "masterUserId": {
+             "type": "string"
+            },
+            "insuredNumber": {
+             "type": "string"
+            },
+            "label": {
+             "type": "string"
+            }
+           }
+          }
+         }
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": "care-documents:write",
+    "description": "管理者・マネージャーの明示確認が必要です。新しい原本や評価承認は作りません。同じ受領の再送は同じ利用者を返し、別資料からの同姓同名登録は別人確認を要求します。登録後の現行権限で更新した未同定受付のcontextも返します。",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "required": [
+         "name",
+         "humanConfirmed",
+         "clientOpId",
+         "expectedReceiptRevision",
+         "expectedOriginalRef"
+        ],
+        "properties": {
+         "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "furigana": {
+          "type": "string"
+         },
+         "birthDate": {
+          "type": "string"
+         },
+         "humanConfirmed": {
+          "const": true
+         },
+         "confirmedDifferentPerson": {
+          "type": "boolean"
+         },
+         "clientOpId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+         },
+         "expectedReceiptRevision": {
+          "type": "string"
+         },
+         "expectedOriginalRef": {
+          "type": "object"
+         }
+        },
+        "additionalProperties": false
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/care-management/v2/sources/receipts/{id}/registration-check": {
+   "post": {
+    "operationId": "post_api_care_management_v2_sources_receipts_id_registration_check",
+    "summary": "未同定資料の新規登録可否と同姓同名の件数を確認 (氏名は本文で送る)",
+    "tags": [
+     "共通資料取り込み・計画準備"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "facilityId",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "serviceDomain",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "contextId",
+      "in": "query",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "登録可否と件数",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "available",
+          "candidateCount"
+         ],
+         "properties": {
+          "available": {
+           "type": "boolean"
+          },
+          "candidateCount": {
+           "type": "integer",
+           "minimum": 0
+          }
+         },
+         "additionalProperties": false
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": "care-documents:read",
+    "description": "氏名をURLに載せないための確認です。新規登録可否は管理者・マネージャーだけに返し、他事業所の氏名は返しません。何も書き込みません。",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "name": {
+          "type": "string",
+          "maxLength": 200
+         }
+        },
+        "additionalProperties": false
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/care-management/v2/subject-candidates": {
+   "post": {
+    "operationId": "post_api_care_management_v2_subject_candidates",
+    "summary": "共通受付の本人候補を氏名・ふりがな等で検索 (検索語は本文で送る)",
+    "tags": [
+     "共通資料取り込み・計画準備"
+    ],
+    "parameters": [
+     {
+      "name": "facilityId",
+      "in": "query",
+      "required": true,
+      "description": "現在の作業事業所",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "serviceDomain",
+      "in": "query",
+      "required": true,
+      "description": "受領側のサービス",
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "masterUserId",
+      "in": "query",
+      "required": false,
+      "description": "未同定の受領では省略できます。架空IDを要求しません。",
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "本人候補 (最大100人)",
+      "content": {
+       "application/json": {
+        "schema": {
+         "type": "object",
+         "required": [
+          "subjectCandidates"
+         ],
+         "properties": {
+          "subjectCandidates": {
+           "type": "array",
+           "items": {
+            "type": "object",
+            "required": [
+             "masterUserId",
+             "label"
+            ],
+            "properties": {
+             "masterUserId": {
+              "type": "string"
+             },
+             "label": {
+              "type": "string"
+             }
+            }
+           }
+          }
+         },
+         "additionalProperties": false
+        }
+       }
+      }
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": "care-documents:read",
+    "description": "capabilities の subjectCandidates と同じ人を返します。検索語をURLに載せないための口です。検索後も現在の事業所・本人の閲覧権を確認します。何も書き込みません。",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "search": {
+          "type": "string",
+          "maxLength": 200
+         }
+        },
+        "additionalProperties": false
        }
       }
      }
@@ -55632,6 +57907,59 @@
     }
    }
   },
+  "/api/care-service-actuals/v1/maintenance/project-care-records": {
+   "post": {
+    "operationId": "post_api_care_service_actuals_v1_maintenance_project_care_records",
+    "summary": "確定済みの記録を実績に入れ直す (下見 → 実行。管理者のセッションのみ)",
+    "tags": [
+     "サービス実績"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "care-service-actuals:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "care-service-actuals:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "care-service-actuals:write",
+    "description": "事業所と期間 (1 年以内) の確定済みの記録のうち、実績にする記録で実績がまだ無いものを実績にする。既定は下見 (dryRun) で何も書かず、件数・月ごとの件数・記録 ID と日付だけを返す (氏名・被保険者番号は返さない)。dryRun: false のときだけ実行し、監査に 1 件残す。既に実績がある記録 (取り消し済みを含む) と記録そのものは変えない。HVC 修正依頼 2026-11-09 H-2",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
   "/api/care-service-actuals/v1/from-app-data": {
    "post": {
     "operationId": "post_api_care_service_actuals_v1_from_app_data",
@@ -59562,6 +61890,88 @@
     "x-cpos-scope": "master-users:write"
    }
   },
+  "/api/user-id-maintenance/v1/alias-collisions": {
+   "get": {
+    "operationId": "get_api_user_id_maintenance_v1_alias_collisions",
+    "summary": "別の人の過去の番号を、いま別の人が持っているもの (番号の重なり) を一覧にする (書き込みなし)",
+    "tags": [
+     "利用者 ID の整備"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "master-users:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "master-users:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "master-users:write"
+   }
+  },
+  "/api/user-id-maintenance/v1/repair-people": {
+   "get": {
+    "operationId": "get_api_user_id_maintenance_v1_repair_people",
+    "summary": "mu の直し (付け違い・統合で取り残された記録) の下見で、誰の記録が何件直る予定かを氏名付きで返す (書き込みなし)",
+    "tags": [
+     "利用者 ID の整備"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "master-users:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "master-users:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "master-users:write"
+   }
+  },
   "/api/user-id-maintenance/v1/unlinked-app-data/link": {
    "post": {
     "operationId": "post_api_user_id_maintenance_v1_unlinked_app_data_link",
@@ -59855,6 +62265,158 @@
     ],
     "x-cpos-auth": "bearer-or-session",
     "x-cpos-scope": "care-claim-candidates:write",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/care-tasks/v1": {
+   "get": {
+    "operationId": "get_api_care_tasks_v1",
+    "summary": "利用者の「やること・見ること」の一覧 (事業所と利用者を指定。終了も含む)",
+    "tags": [
+     "やること・見ること"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "care-records:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "care-records:read"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "care-records:read"
+   },
+   "post": {
+    "operationId": "post_api_care_tasks_v1",
+    "summary": "1 件作る",
+    "tags": [
+     "やること・見ること"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "care-records:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "care-records:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "care-records:write",
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/care-tasks/v1/{id}": {
+   "patch": {
+    "operationId": "patch_api_care_tasks_v1_id",
+    "summary": "名前・種類・やり方・必須・並び順を直す / 終了・再開 (削除の口は無い)",
+    "tags": [
+     "やること・見ること"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "bearerToken": [
+       "care-records:write"
+      ]
+     },
+     {
+      "oauth2": [
+       "care-records:write"
+      ]
+     },
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "care-records:write",
     "requestBody": {
      "required": false,
      "content": {
@@ -68167,16 +70729,10 @@
     },
     "security": [
      {
-      "bearerToken": []
-     },
-     {
-      "oauth2": []
-     },
-     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-auth": "session",
     "x-cpos-scope": null
    }
   },
@@ -68204,16 +70760,10 @@
     },
     "security": [
      {
-      "bearerToken": []
-     },
-     {
-      "oauth2": []
-     },
-     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-auth": "session",
     "x-cpos-scope": null
    }
   },
@@ -77433,7 +79983,7 @@
   "/api/apps": {
    "get": {
     "operationId": "get_api_apps",
-    "summary": "ワークフロー対応のリスト（status フィルタ対応）",
+    "summary": "登録アプリの一覧 (status フィルタ対応)。admin / manager のログインか apps:read の Bearer",
     "tags": [
      "登録アプリ"
     ],
@@ -77454,11 +80004,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "apps:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "apps:read"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "apps:read"
    },
    "post": {
     "operationId": "post_api_apps",
@@ -77565,11 +80125,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "apps:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "apps:read"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "apps:read"
    },
    "put": {
     "operationId": "put_api_apps_id",
@@ -77692,17 +80262,21 @@
     },
     "security": [
      {
-      "bearerToken": []
+      "bearerToken": [
+       "apps:read"
+      ]
      },
      {
-      "oauth2": []
+      "oauth2": [
+       "apps:read"
+      ]
      },
      {
       "sessionCookie": []
      }
     ],
     "x-cpos-auth": "bearer-or-session",
-    "x-cpos-scope": null
+    "x-cpos-scope": "apps:read"
    },
    "put": {
     "operationId": "put_api_apps_id_scopes",
@@ -77827,11 +80401,21 @@
     },
     "security": [
      {
+      "bearerToken": [
+       "apps:read"
+      ]
+     },
+     {
+      "oauth2": [
+       "apps:read"
+      ]
+     },
+     {
       "sessionCookie": []
      }
     ],
-    "x-cpos-auth": "session",
-    "x-cpos-scope": null
+    "x-cpos-auth": "bearer-or-session",
+    "x-cpos-scope": "apps:read"
    },
    "post": {
     "operationId": "post_api_apps_id_access",
@@ -79411,6 +81995,327 @@
       }
      }
     }
+   }
+  },
+  "/api/maintenance/cloud-backup/v1/status": {
+   "get": {
+    "operationId": "get_api_maintenance_cloud_backup_v1_status",
+    "summary": "バックアップ (super_admin): Google Cloud 側の完全なバックアップの状況 (過去の時点への復元・予定バックアップ・毎晩の書き出し・削除の保護・復元した写し) を読む",
+    "tags": [
+     "maintenance"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null
+   }
+  },
+  "/api/maintenance/cloud-backup/v1/restores": {
+   "post": {
+    "operationId": "post_api_maintenance_cloud_backup_v1_restores",
+    "summary": "バックアップ (super_admin・本番だけ): 予定バックアップを新しいデータベース restore-YYYYMMDD に復元する (理由が要る。今のデータベースは上書きしない)",
+    "tags": [
+     "maintenance"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/maintenance/staging-copy/v1/view": {
+   "get": {
+    "operationId": "get_api_maintenance_staging_copy_v1_view",
+    "summary": "本番データのコピー (ステージングだけ): 使えるか・予約・定期実行・実行中と最近のコピーを見る",
+    "tags": [
+     "maintenance"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null
+   }
+  },
+  "/api/maintenance/staging-copy/v1/runs": {
+   "post": {
+    "operationId": "post_api_maintenance_staging_copy_v1_runs",
+    "summary": "本番データのコピー: 今すぐ始める (実行中があれば 409)",
+    "tags": [
+     "maintenance"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/maintenance/staging-copy/v1/runs/{id}/advance": {
+   "post": {
+    "operationId": "post_api_maintenance_staging_copy_v1_runs_id_advance",
+    "summary": "本番データのコピー: 実行中のコピーを最大 20 秒ぶん進めて状態を返す",
+    "tags": [
+     "maintenance"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/maintenance/staging-copy/v1/recurring": {
+   "put": {
+    "operationId": "put_api_maintenance_staging_copy_v1_recurring",
+    "summary": "本番データのコピー: 定期実行 (毎日・毎週、日本時間の時刻) を保存する",
+    "tags": [
+     "maintenance"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/maintenance/staging-copy/v1/reservations": {
+   "post": {
+    "operationId": "post_api_maintenance_staging_copy_v1_reservations",
+    "summary": "本番データのコピー: 1 回だけの予約を足す (20 件まで)",
+    "tags": [
+     "maintenance"
+    ],
+    "parameters": [],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null,
+    "requestBody": {
+     "required": false,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "additionalProperties": true
+       }
+      }
+     }
+    }
+   }
+  },
+  "/api/maintenance/staging-copy/v1/reservations/{id}": {
+   "delete": {
+    "operationId": "delete_api_maintenance_staging_copy_v1_reservations_id",
+    "summary": "本番データのコピー: 予約を取り消す",
+    "tags": [
+     "maintenance"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "成功"
+     },
+     "400": {
+      "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
+     }
+    },
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
+    "x-cpos-scope": null
    }
   },
   "/api/restore/v1/feature": {
@@ -87828,9 +90733,9 @@
   "/api/auth/impersonation": {
    "get": {
     "operationId": "get_api_auth_impersonation",
-    "summary": "(台帳未記載)",
+    "summary": "なりすまし表示のいまの状態 (管理者の本物のログインだけ)",
     "tags": [
-     "未分類"
+     "認証"
     ],
     "parameters": [],
     "responses": {
@@ -87839,17 +90744,27 @@
      },
      "400": {
       "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
      }
     },
-    "security": [],
-    "x-cpos-auth": "unknown",
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
     "x-cpos-scope": null
    },
    "post": {
     "operationId": "post_api_auth_impersonation",
-    "summary": "(台帳未記載)",
+    "summary": "なりすまし表示を始める・切り替える ({ userId } か { email }。管理者の本物のログインだけ)",
     "tags": [
-     "未分類"
+     "認証"
     ],
     "parameters": [],
     "responses": {
@@ -87858,10 +90773,20 @@
      },
      "400": {
       "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
      }
     },
-    "security": [],
-    "x-cpos-auth": "unknown",
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
     "x-cpos-scope": null,
     "requestBody": {
      "required": false,
@@ -87877,9 +90802,9 @@
    },
    "delete": {
     "operationId": "delete_api_auth_impersonation",
-    "summary": "(台帳未記載)",
+    "summary": "なりすまし表示を止める",
     "tags": [
-     "未分類"
+     "認証"
     ],
     "parameters": [],
     "responses": {
@@ -87888,19 +90813,29 @@
      },
      "400": {
       "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
      }
     },
-    "security": [],
-    "x-cpos-auth": "unknown",
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
     "x-cpos-scope": null
    }
   },
   "/api/auth/impersonation/candidates": {
    "get": {
     "operationId": "get_api_auth_impersonation_candidates",
-    "summary": "(台帳未記載)",
+    "summary": "なりすまし表示の対象にできる人 (?facilityId= で絞る。管理者の本物のログインだけ)",
     "tags": [
-     "未分類"
+     "認証"
     ],
     "parameters": [],
     "responses": {
@@ -87909,10 +90844,20 @@
      },
      "400": {
       "description": "入力が正しくない (本文の error に日本語の理由)"
+     },
+     "401": {
+      "description": "セッション Cookie または Bearer トークンが必要"
+     },
+     "403": {
+      "description": "権限またはスコープが足りない"
      }
     },
-    "security": [],
-    "x-cpos-auth": "unknown",
+    "security": [
+     {
+      "sessionCookie": []
+     }
+    ],
+    "x-cpos-auth": "session",
     "x-cpos-scope": null
    }
   }
@@ -100063,8 +103008,8 @@
        "handover:read": "handover:read",
        "handover:write": "handover:write",
        "ask-ai": "デバイス API: askの登録・実行 (ask)",
-       "filing:read": "filing:read",
-       "filing:write": "filing:write",
+       "filing:read": "PDF を解析して AI 結果 + プランを返す (まだ書き込まない) POST /analyze body: { facilityId, pdfBase64, mimeType? }",
+       "filing:write": "バッチ適用: analyze-batch の plans をまとめて apply POST /apply-batch body: { facilityId, items: [{ name, pdfBase64, plans }], isConfidential? } isConfidential=true のとき、本文",
        "apps:admin": "登録アプリの棚卸し (manifest が要るスコープと有効トークンの不足、配信先の有無)。既定で manifest を取り直す (?verify=false で登録の保存値のみ)",
        "audit-events:write": "監査ログ: アプリからの申告 (自前セッションのアプリのなりすまし開始・停止)",
        "pdf:render:write": "HTML から PDF を生成",
@@ -100211,7 +103156,7 @@
        "platform:pii:scan": "text → カテゴリ別件数 + 位置 (値は返さない)",
        "kasan:pii:read": "kasan:pii:read",
        "robots:read": "ロボット連携の契約 (能力・同意目的・作業種別・状態遷移・原則) の自己記述",
-       "robots:write": "ロボットを登録 (トークンからの登録は停止状態で作られ、有効化は人が行う)",
+       "robots:write": "機体の登録を承認する (機体は停止中で登録される)。職員の対話操作のみ",
        "robots:act": "このロボット用トークンに紐づくロボットの一覧",
        "robot-consents:read": "ロボット利用の同意の一覧",
        "robot-consents:write": "ロボット利用の同意を記録 (職員の対話操作のみ)",

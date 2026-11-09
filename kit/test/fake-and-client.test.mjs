@@ -94,3 +94,9 @@ test('偽ログイン画面が出て、選ぶと Cookie が付く', async () => 
   assert.equal(as.status, 302);
   assert.match(as.headers.get('set-cookie'), /cpos_session=acc_admin/);
 });
+
+test('client: PAT が本人のロールで断られた 403 (pat_subject_forbidden) にはスコープ不足と違う hint を付ける', async () => {
+  const body = { error: 'この操作は発行した本人の権限では行えません', code: 'pat_subject_forbidden', resource: 'apps', action: 'admin' };
+  const c = createCposClient({ baseUrl: 'http://cpos.invalid', token: 'cpos_pat_test', fetch: async () => new Response(JSON.stringify(body), { status: 403, headers: { 'content-type': 'application/json' } }) });
+  await assert.rejects(c.facilities.list(), (e) => e instanceof CposApiError && e.status === 403 && /本人のロール/.test(e.hint) && !/apiTokenScopes/.test(e.hint));
+});

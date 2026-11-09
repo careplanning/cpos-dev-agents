@@ -23,6 +23,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { randomUUID, createHash } from 'node:crypto';
 
+// CPOS の OAUTH_FORBIDDEN_SCOPES と同じ (2026-10-23 の CPOS から)
+const OAUTH_FORBIDDEN_SCOPES = ['apps:admin', 'users:admin', 'organizations:provision'];
+
 const here = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_SEED_PATH = resolve(here, 'seed.json');
 
@@ -350,6 +353,16 @@ function buildFakeCpos(opts = {}) {
       if (!client) return html(res, 400, '<p>client_id が登録されていません (POST /oauth/register)</p>');
       if (!client.redirect_uris.includes(q.get('redirect_uri') ?? '')) return html(res, 400, '<p>redirect_uri が登録と一致しません</p>');
       if (q.get('code_challenge_method') !== 'S256' || !q.get('code_challenge')) return html(res, 400, '<p>PKCE (S256) が要ります</p>');
+      // 本物と同じく、管理操作のスコープは OAuth では与えない (同意の前に redirect_uri へ error=invalid_scope)
+      const forbidden = (q.get('scope') ?? '').split(/\s+/).filter((s) => OAUTH_FORBIDDEN_SCOPES.includes(s));
+      if (forbidden.length) {
+        const to = new URL(q.get('redirect_uri'));
+        to.searchParams.set('error', 'invalid_scope');
+        to.searchParams.set('error_description', `${forbidden.join(' ')} は OAuth では要求できません (管理者の PAT 専用)`);
+        if (q.get('state')) to.searchParams.set('state', q.get('state'));
+        res.writeHead(302, { Location: to.toString() });
+        return res.end();
+      }
       const rows = seed.accounts.map((a) => {
         const scope = a.allowedFacilityIds === null ? '全事業所' : a.allowedFacilityIds.length ? a.allowedFacilityIds.map((id) => facilityById.get(id)?.name ?? id).join('、') : '事業所なし';
         return `<li><a href="/oauth/authorize/as/${esc(a.id)}?${esc(q.toString())}">${esc(a.name)}</a> <small>(${esc(a.role)} / ${esc(scope)})</small></li>`;

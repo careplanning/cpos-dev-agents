@@ -1,9 +1,9 @@
 {
  "generatedFrom": {
   "version": "0.1.0",
-  "revision": "main@13ab4bc8",
-  "fetchedAt": "2026-10-21",
-  "operations": 1606
+  "revision": "main@8b68de48",
+  "fetchedAt": "2026-11-09",
+  "operations": 1656
  },
  "note": "CPOS が知る全スコープ (OpenAPI の oauth2 scopes) と、それを要求する operation の数。{appId} を含むものは雛形 (appId を入れて使う)。生成物。手で編集しない",
  "scopes": [
@@ -12,14 +12,13 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 4,
+   "operations": 2,
    "ns": [
     "session"
    ],
    "examples": [
     "GET /api/device/bootstrap",
-    "GET /api/device/facilities",
-    "GET /api/device/ping"
+    "GET /api/device/facilities"
    ]
   },
   {
@@ -179,14 +178,14 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 3,
+   "operations": 7,
    "ns": [
     "app"
    ],
    "examples": [
     "GET /api/app-data/catalog",
-    "GET /api/platform/apps",
-    "GET /api/platform/apps/{appId}"
+    "GET /api/apps",
+    "GET /api/apps/{id}"
    ]
   },
   {
@@ -433,9 +432,10 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 47,
+   "operations": 50,
    "ns": [
-    "app"
+    "app",
+    "session"
    ],
    "examples": [
     "GET /api/care-documents/v1",
@@ -448,7 +448,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 45,
+   "operations": 46,
    "ns": [
     "app",
     "session"
@@ -518,7 +518,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 68,
+   "operations": 69,
    "ns": [
     "session",
     "app"
@@ -549,7 +549,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 73,
+   "operations": 75,
    "ns": [
     "app",
     "session"
@@ -723,7 +723,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 8,
+   "operations": 9,
    "ns": [
     "app"
    ],
@@ -816,7 +816,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 12,
+   "operations": 11,
    "ns": [
     "app"
    ],
@@ -1102,18 +1102,30 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 0,
-   "ns": [],
-   "examples": []
+   "operations": 3,
+   "ns": [
+    "app"
+   ],
+   "examples": [
+    "POST /api/filing/analyze",
+    "POST /api/filing/analyze-batch",
+    "POST /api/filing/analyze-text"
+   ]
   },
   {
    "name": "filing:write",
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 0,
-   "ns": [],
-   "examples": []
+   "operations": 4,
+   "ns": [
+    "app"
+   ],
+   "examples": [
+    "POST /api/filing/apply",
+    "POST /api/filing/apply-batch",
+    "POST /api/filing/apply-text"
+   ]
   },
   {
    "name": "form-templates:delete",
@@ -1448,7 +1460,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 5,
+   "operations": 7,
    "ns": [
     "app"
    ],
@@ -1811,13 +1823,14 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 2,
+   "operations": 4,
    "ns": [
     "app"
    ],
    "examples": [
-    "GET /api/robotics/tasks",
-    "GET /api/robotics/tasks/{id}"
+    "GET /api/robotics/observations",
+    "GET /api/robotics/observations/{id}",
+    "GET /api/robotics/tasks"
    ]
   },
   {
@@ -1825,14 +1838,14 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 5,
+   "operations": 8,
    "ns": [
     "app"
    ],
    "examples": [
-    "POST /api/robotics/tasks",
-    "PATCH /api/robotics/tasks/{id}",
-    "POST /api/robotics/tasks/{id}/cancel"
+    "PUT /api/robotics/floor-plan/users/{masterUserId}",
+    "POST /api/robotics/observations/{id}/review",
+    "POST /api/robotics/observations/review-batch"
    ]
   },
   {
@@ -1840,7 +1853,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 23,
+   "operations": 28,
    "ns": [
     "app"
    ],
@@ -1855,14 +1868,14 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 4,
+   "operations": 9,
    "ns": [
     "app"
    ],
    "examples": [
     "GET /api/robotics/catalog",
-    "GET /api/robotics/events",
-    "GET /api/robotics/robots"
+    "GET /api/robotics/device/registrations",
+    "GET /api/robotics/device/registrations/{id}"
    ]
   },
   {
@@ -1870,14 +1883,14 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 4,
+   "operations": 11,
    "ns": [
     "app"
    ],
    "examples": [
-    "POST /api/robotics/robots",
-    "PATCH /api/robotics/robots/{id}",
-    "DELETE /api/robotics/robots/{id}"
+    "POST /api/robotics/device/registrations/{id}/facilities",
+    "POST /api/robotics/device/registrations/{id}/facilities/remove",
+    "POST /api/robotics/device/registrations/{id}/manager"
    ]
   },
   {
@@ -2425,7 +2438,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 63,
+   "operations": 64,
    "ns": [
     "app"
    ],
@@ -2469,7 +2482,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 64,
+   "operations": 65,
    "ns": [
     "app"
    ],

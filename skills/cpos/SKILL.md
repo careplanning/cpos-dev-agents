@@ -142,7 +142,7 @@ npx github:loogo-inc/cpos-kit fake            # http://127.0.0.1:4300、架空�
 ```
 
 - `npx github:loogo-inc/cpos-kit validate` で形を確認する。
-- 公開 URL の直下 (`/cpos.manifest.json`) で配信する。トークンが無くても配信できること。**5 秒以内に応答すること** (CPOS の取込はリダイレクト込みで 5 秒固定。Cloud Run の min-instances 0 でコールドスタートすると落ちる)。登録のときだけでなく、`apps:fleet` の rotate のたびに取りに来る。落ちていると新しいスコープのトークンが出ない (古いトークンのまま)。
+- 公開 URL の直下 (`/cpos.manifest.json`) で配信する。トークンが無くても配信できること。**5 秒以内に応答すること** (CPOS の取込はリダイレクト込みで 5 秒固定。Cloud Run の min-instances 0 でコールドスタートすると落ちる)。本文は 1 MB 以内 (超えると取込が `body_too_large` で落ちる)。URL とリダイレクト先は公開ホストの https だけ (localhost・private IP は登録でも rotate でも拒否される)。登録のときだけでなく、`apps:fleet` の rotate のたびに取りに来る。落ちていると新しいスコープのトークンが出ない (古いトークンのまま)。
 - App Token を Secret Manager で受け取るなら `tokenDelivery.secretManager.secret` を宣言する。CPOS 側の一括運用 (`apps:fleet rotate`) が新トークンを新しい版として書き、貼り替えが要らなくなる。ステージングでは `<secret>-staging` に配られる (その secret の枠と権限が先に要る。ステージングの台帳は本番と別なので、スコープを足したら両方で回す)。`apps:admin` は管理者の PAT 専用で manifest には書かない。
 - 変えたら CPOS への再登録 (`register-from-url`) と App Token の再発行が要る。admin か app-publisher の人に頼む。**manager が発行するトークンは事業所限定 (allowedFacilityIds 必須) でワイルドカード不可。組織全体のトークンは admin だけ。** トークンは発行後 30 秒キャッシュされる (失効が他のインスタンスに効くまで最長 30 秒)。
 
@@ -154,6 +154,8 @@ CPOS を呼ぶには 2 つの関門がある。**別物なので両方いる。*
 |---|---|---|
 | **スコープ** (CPOS 側) | manifest に宣言 → アプリ登録 → App Token 発行 | 本物が **403** (`requiredScope` 付き) |
 | **OpenAPI と facilityId** (kit 側) | OpenAPI にある operation を、`facilityId` を付けて呼ぶ | 生成メソッドと `raw()` が手前で失敗する |
+
+記録の読み取り (`care-records:read`) となんでもボックス (`sources:*`) のスコープは、ステージングでも本番でも検査される (2026-10-23 の CPOS から)。宣言せずに呼べていたアプリは 403 になる。
 
 KIT 模擬サーバは `cpos.manifest.json` の `apiTokenScopes` を既定スコープにして検査する (manifest が無い場所だけ全スコープ)。manifest に無いスコープの API は模擬でも 403 になるので、**模擬サーバで動いて本物で 403** はスコープ宣言漏れではなく、トークンの発行時に付け忘れたときに起きる (`npx github:loogo-inc/cpos-kit connect` が照合する)。
 
@@ -181,7 +183,7 @@ GET /api/app-data/totally-unknown-app/…  → 403   同上 (「登録されて�
 
 **登録そのものは人がブラウザでやる。自動化できない** (ステージングで確認: `POST /api/apps`、
 `/api/apps/register-from-url`、`/api/apps/:id/manifest` はすべて `sessionCookie` 専用。
-App Token や PAT では 401。読み取り `GET /api/apps` だけは Bearer で通る)。
+App Token や PAT では 401。読み取りの `GET /api/apps`・`/api/apps/:id`・`/:id/scopes`・`/:id/access` は `apps:read` を持つ Bearer なら通る (無ければ 403、他の組織のアプリは 404)。職員の入口は `/api/apps/launcher`)。
 
 登録は CPOS 管理画面の「アプリ管理」から。**上段の「URL から登録」が本命**:
 
@@ -301,6 +303,7 @@ claude mcp add --transport http cpos <CPOS の URL>/mcp    # 初回はブラウ�
 - 用途: 「本物の応答の形を見る」「あるか無いかを実物で確かめる」。**アプリのコードは MCP ではなく client / raw で書く** (アプリはサーバ間で App Token を使う)。
 - 利用者の個人情報を含むツール (master_users_list、master_user_get、transport_plans_list、alerts_list) は CPOS 側が `MCP_ALLOW_PHI=true` にしないと出ない。利用者系の「本物の形」は verify:live の証跡 (api.d.ts の JSDoc「応答の項目」) で見る。
 - ステージングは本番データのコピーを含む。MCP で見た個人情報をコード・テスト・docs に貼らない。
+- OAuth で `apps:admin` / `users:admin` / `organizations:provision` を要求すると同意の前に `invalid_scope` で落ちる (管理者の PAT 専用)。PAT と OAuth のトークンは、スコープがあっても**発行した本人のロールで許されない操作は 403 (`pat_subject_forbidden`)** になる。サーバ間の呼び出しは App Token で書く。
 - モバイルや別ドメインのアプリで「利用者本人の代理」で動きたい場合も、同じ OAuth 2.1 (公開クライアント、PKCE) が入口になる。
 
 ## 8. データが要るとき: CPOS の API は全部メソッドになっている (推測で呼ばない)

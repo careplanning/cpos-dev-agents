@@ -5,6 +5,44 @@ v1 の間は API の削除をしない (deprecated の印だけ)。
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-09
+
+### Added
+- `@cpos/kit/robot`: 機体 (ロボット・アダプタ) 専用のクライアント。CPOS の機体専用の資格情報 (profile `cpos-robot-device/2026-10-28`: QR の機体登録 RFC 8628 + 鍵の証明 DPoP RFC 9449) を使う。鍵の生成と差し替えられる署名器、登録の開始 (QR 用の URL と短いコード)・待機・受取、`Authorization: DPoP` と要求ごとの新しい証明、更新の 1 回化 (保存先のロック)、鍵の交換、自己登録解除。401 は種類ごとに扱い (期限切れ→更新して 1 回、時計のずれ→補正して 1 回、失効→`RobotRegistrationRequiredError`)、400 / 403 / 404 / 409 / 422 は再送しない。5xx・通信断は GET か opId 付きのときだけ再送する (opId は同じ、証明は作り直す)。証明の検証 `verifyDpopProof` も入っている (模擬環境・エミュレータ用)。依存ゼロ。
+- 模擬サーバ (`@cpos/kit/fake`) にはまだ機体登録は無い (本物の staging で確かめてから足す)。
+- CPOS の API の追加に追随 (11 operation): 共通の資料取り込みで、未登録の人の資料から利用者登録へつなぐ `careManagement.getV2SourcesReceiptsByIdRegistration` / `postV2SourcesReceiptsByIdRegistration`、氏名を本文で送る登録可否の確認 `postV2SourcesReceiptsByIdRegistrationCheck`、検索語を本文で送る本人候補の検索 `postV2SubjectCandidates` (いずれも職員のログインが必要)。ほかに管理画面のステージングへのコピー (`maintenance.*StagingCopyV1*` 6 件) と定時実行の起動口 `cpos.app.triggers.postTasksStagingCopyDue`。
+- CPOS の API の追加に追随 (3 operation): 利用者ごとのケアタスク `cpos.app.careTasks.getV1` / `postV1` / `patchV1ById`。
+- CPOS の API の追加に追随 (35 operation): 機体まわり `cpos.app.robotics.*` (機体の登録・承認・鍵の交換、フロアプラン、観察の記録と確認、タスクの状態)、利用者 ID 保守の `userIdMaintenance.getV1AliasCollisions` / `getV1RepairPeople`、介護サービス実績の `careServiceActuals.postV1MaintenanceProjectCareRecords`、クラウドバックアップの `maintenance.getCloudBackupV1Status` / `postCloudBackupV1Restores`、同一人物候補の `masterUsers.postLikelySame`、福祉用具の写真 `welfareEquipment.postV2LogisticsByJobIdLinesByLineIdPhotos` と取得。
+- `care-management/v2/capabilities` の `subjectSearch` は旧版の画面のためだけに残る (検索語が URL に残る)。新しく書くなら `postV2SubjectCandidates` を使う。
+- CPOS の API の追加に追随 (1 operation): 職員のメールアドレスの差し替え `cpos.session.authUsers.postByIdEmail` (職員のログインが必要、システム管理者だけ。アカウントの ID は変わらない)。
+
+### Changed
+- 書類の振り分け (`/api/filing/*` の 7 operation) は App Token でも呼べるようになった (`filing:read` / `filing:write`)。
+- 模擬サーバの OAuth は、本物と同じく `apps:admin` / `users:admin` / `organizations:provision` を要求されると `invalid_scope` で戻す。
+- client の 403 の hint: PAT が発行した本人のロールで断られたとき (`pat_subject_forbidden`) は、スコープ不足と別の案内を出す。
+
+- 雛形の CI (`.github/workflows/ci.yml`) を CPOS のアプリの標準 CI と同じ手順にした (依存の固定導入 `npm ci`、依存の脆弱性検査、SBOM、型検査、テスト、ビルド。kit の `validate` は導入の直後)。手順の正本は `kit/ci/standard.json`。CPOS の Cloud Build の CI に移ったリポジトリ (変数 `EXTERNAL_CI_ACTIVE=true`) では動かない。
+
+### 既存アプリで手が要る
+- CPOS の API 一覧の認証の書き方が、実際の動きに合わせて直った (本物での照らし合わせで見つかった 13 本)。呼び名が次のように移る (メソッド名は同じ):
+  - `cpos.session.*` → `cpos.app.*` (App Token でも呼べる): `auth.getMe`、`platform.getMe`、`capabilities.get`、`buildInfo.get`、`device.getPing`・`getReleases`・`getReleasesLatest`
+  - `cpos.app.*` → `cpos.session.*` (職員のログイン専用): `facilityFinancials.getLaborCostRatio` (super_admin だけ)、`platform.getBootstrap`、`platform.getEffectiveSettings`、なりすまし表示の `auth.*Impersonation*` 4 本
+- `npx cpos-kit update` で ci.yml が新しい手順になる。`npm ci` を使うので `package-lock.json` を commit しておくこと。
+- `cpos.session.filing.*` は `cpos.app.filing.*` に移った (メソッド名は同じ)。古い呼び名は無くなった。
+- PAT と OAuth のトークンは、スコープがあっても発行した本人のロールを超える操作で 403 (`pat_subject_forbidden`) になる。サーバ間の呼び出しは App Token で書く。
+- 記録の読み取り (`care-records:read`) となんでもボックス (`sources:*`) のスコープは、ステージングでも本番でも検査される。宣言せずに呼べていたアプリは 403 になる。
+- `GET /api/apps` 系の読み取りは `apps:read` が要る (無ければ 403)。App Token から呼べるようになったので、`cpos.session.apps.get` / `getById` / `getByIdAccess` は `cpos.app.apps.*` に移った (メソッド名は同じ)。
+- 共通の資料取り込みの登録確認 (`GET .../registration`) は `?name=` を読まなくなった。氏名は `POST .../registration-check` の本文で送る。
+- manifest の取込は本文 1 MB まで。
+
+<details><summary>CPOS 26b4a5d4..59e218e6 の分類 (候補・影響なし)</summary>
+
+- 候補: CPOS の reusable CI (`node-app.yml`) の再利用と npm キャッシュ (0837641a, 78833bfc, 0935433c)、アプリのリポジトリへの CI 一式の配布 (f0aa18d6, b9bd17b3。kit の雛形 ci.yml と持ち主が重なる)、ステージングのアドレスを 1 つの domain から作る (733ecb47)、ステージングへのコピー後はログインが消える (20a4c818, fc0b0019)、Docker の lockfile 強制 (695280b1)、アプリ間起動の拒否条件 (b9065973)、filing のスコープ (78e0c30b)、受付からの登録 (766886a7, d30338d8)。
+- 影響なし: CPOS 自身の CI・デプロイの整備 24 件、PAT 発行の入力検証 (4766cce8)、トークン管理の組織境界 (826de6bf)、export (88e58137)、大きい本文の前の認証 (34ec5a8a)、admin 作成 (2f76c4b8)、共用アカウント (9c528f65)、内部 wrapper (d95d4af8)、移管後の doc リンク (f4db312f)。
+- 道具の側: CPOS のリポジトリの置き場所が変わったので、週次の差分ジョブの checkout 先を直した。
+
+</details>
+
 ## [0.12.0] - 2026-10-21
 
 ### Added

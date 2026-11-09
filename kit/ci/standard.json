@@ -1,0 +1,16 @@
+{
+  "$comment": "CPOS のアプリの標準 CI の正本 (cpos-kit が持つ)。kit の雛形 .github/workflows/ci.yml はこの手順そのもの。kit を使っていないアプリには、CPOS が同じ手順を Cloud Build の CI (.ci/profile.json) として配る (CPOS は写しを持ち、ずれをテストで止める)。手順を変えるときはここを直してから CPOS の写しを更新する。",
+  "version": "2026-10-28.1",
+  "node": "22",
+  "steps": [
+    { "name": "Install", "run": "npm ci --no-audit --no-fund" },
+    { "name": "Dependency audit", "run": "npm audit --omit=dev --audit-level=\"high\"" },
+    { "name": "SBOM (CycloneDX)", "run": "npm sbom --sbom-format cyclonedx --omit dev > sbom.cyclonedx.json" },
+    { "name": "Typecheck", "run": "npm run typecheck --if-present" },
+    { "name": "Test", "run": "npm run test --if-present" },
+    { "name": "Build", "run": "npm run build --if-present" }
+  ],
+  "kitSteps": [
+    { "after": "Install", "run": "npx cpos-kit validate" }
+  ]
+}
