@@ -62,6 +62,22 @@ test('create --yes で雛形ができて、manifest が通る', () => {
   }
 });
 
+test('標準ブロックは、普通の長さの appId (30 字) と表示名 (10 字) で作っても 8KB 未満 (名前と ID は 7 か所に展開される)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'cpos-kit-'));
+  try {
+    const appId = 'care-plan-assistant-for-office';   // 30 字
+    assert.equal(appId.length, 30);
+    const dest = join(dir, 'long');
+    execFileSync('node', [resolve(root, 'kit', 'bin', 'cpos-kit.mjs'), 'create', dest, '--name', '送迎計画の見本アプリ', '--app-id', appId, '--sample', 'node', '--yes'], { encoding: 'utf8' });
+    const agents = readFileSync(join(dest, 'AGENTS.md'), 'utf8');
+    assert.ok(agents.includes(appId) && agents.includes('CARE_PLAN_ASSISTANT_FOR_OFFICE'), '名前と ID が展開されている');
+    const size = Buffer.byteLength(agents.slice(agents.indexOf('cpos-kit:begin'), agents.indexOf('cpos-kit:end')));
+    assert.ok(size < 8 * 1024, `標準ブロックが 8KB を超えている (${size} バイト)`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('create は --sample none でも package.json を書く (無いと npm install が落ちる)', () => {
   // 実害 (2026-09-13、所有者の環境): package.json が無いフォルダで npm install すると、
   // npm が親をたどってホームの package.json / pnpm の node_modules を掴み、

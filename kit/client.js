@@ -60,7 +60,8 @@ export function tokenResolver(o = {}) {
 }
 
 /**
- * いまの接続先がどちらか。原則はステージング (本物)。模擬サーバは自分で選んだとき (--mock か 127.0.0.1 / localhost の URL) だけ。
+ * いまの接続先がどちらか (--mock か 127.0.0.1 / localhost の URL なら模擬サーバ、https ならステージング)。
+ * 原則は模擬サーバ。ステージングは架空データに置き換わるまで本番の写しなので、担当者に頼まれた確認のときだけ。
  * @param {{ baseUrl?: string | null, argv?: string[] }} o
  * @returns {'staging' | 'mock' | 'unset'}
  */

@@ -216,17 +216,19 @@ async function create() {
     facilityInHeader = await askFacilityInHeader();
     facilityPinned = facilityInHeader ? await askFacilityPinned() : false;
   }
-  // 接続先。原則はステージング (本物の応答で作る)。URL とトークンがまだ無ければ模擬サーバ (後で connect で切り替える)。
+  // 接続先。原則は模擬サーバ (架空データ)。ステージングは --connect staging か --url / --token-file を渡したとき、
+  // または対話で選んだときだけで、そのとき注意を出す。ステージングが架空データに置き換わるまでの措置 (置き換わったら戻す)。
   // ここまでが質問。ファイルはこの後で書くので、途中で止めても何も残らない
   const APP = appId.toUpperCase().replace(/[^A-Z0-9]+/g, '_');
   let mode = opt('--connect') ?? ((opt('--url') || opt('--token-file')) ? 'staging' : null);
   if (mode && !['staging', 'mock'].includes(mode)) die('--connect は staging か mock');
   if (!mode) mode = yes ? 'mock' : await choose('接続先', [
-    { value: 'staging', label: 'ステージングにつないで作る (原則)' },
-    { value: 'mock', label: '模擬サーバで手元だけ (URL とトークンがまだ無ければこちら)' }
-  ], 'staging');
+    { value: 'mock', label: '模擬サーバで作る (原則。架空データ)' },
+    { value: 'staging', label: 'ステージングにつなぐ (いまは本番の写し。担当者に頼まれた確認のときだけ)' }
+  ], 'mock');
   let base = opt('--url') ?? null, token = null;
   if (mode === 'staging') {
+    stagingWarning();
     const tf = opt('--token-file');
     if (tf) { try { token = readFileSync(tf.replace(/^~/, process.env.HOME ?? ''), 'utf8').trim(); } catch { die(`トークンのファイルが読めません: ${tf}`); } }
     if (!base) base = await ask('CPOS の URL (担当者から受け取ったステージングの URL。まだ無ければ空のまま Enter → 模擬サーバにする)', '', (v) => (!v || /^https?:\/\/[^\s]+$/.test(v) ? null : 'https:// で始まる URL を入れてください (無ければ空のまま Enter)'));
@@ -253,9 +255,9 @@ async function create() {
       : '**先に読む:** 見本のサーバには利用者の認証がない。ステージングや本番の CPOS に向けたまま公開すると、URL を知る誰でも App Token 経由で利用者データを読める。公開する前にログイン (スキル `cpos` の §7、`--sample fastify` の見本と同じ `fastifyLoginGate` / `expressLoginGate`) を入れる。',
     kitVersion: pkg.version,
     firstSteps: sample === 'fastify'
-      ? '1. `npm install` (依存は `fastify` と `@cpos/kit`)\n2. `npm run dev` → .env の接続先で起動する (原則ステージング = 本物の応答。模擬サーバなら `npm run dev:mock`)。http://127.0.0.1:3000 を開く\n3. `npm test` が緑であることを確かめる (テストは模擬サーバ。本物に向けるなら `npm run test:staging`)\n4. 接続先を切り替える: `npx github:loogo-inc/cpos-kit connect` → `npm start` → ブラウザで本物の Google ログイン (OAuth) が一巡する'
+      ? '1. `npm install` (依存は `fastify` と `@cpos/kit`)\n2. `npm run dev` → .env の接続先で起動する (原則は模擬サーバ = 架空データ。`npm run dev:mock` は常に模擬)。http://127.0.0.1:3000 を開く\n3. `npm test` が緑であることを確かめる (テストは模擬サーバ。本物に向けるなら `npm run test:staging`)\n4. 接続先を切り替える (ステージングは、いまは本番の写し。架空データに置き換わるまでは担当者に頼まれた確認のときだけ): `npx github:loogo-inc/cpos-kit connect` → `npm start` → ブラウザで本物の Google ログイン (OAuth) が一巡する'
       : sample === 'node'
-      ? '1. `npm install` (依存は `@cpos/kit` だけ)\n2. `npm run dev` → .env の接続先で起動する (原則ステージング = 本物の応答。模擬サーバなら `npm run dev:mock`)。http://127.0.0.1:3000 を開く\n3. `npm test` が緑であることを確かめる (テストは模擬サーバ。本物に向けるなら `npm run test:staging`)\n4. 接続先を切り替える: `npx github:loogo-inc/cpos-kit connect` (ステージング) / `.env` を模擬に戻すなら `npx github:loogo-inc/cpos-kit create` の mock と同じ 2 行'
+      ? '1. `npm install` (依存は `@cpos/kit` だけ)\n2. `npm run dev` → .env の接続先で起動する (原則は模擬サーバ = 架空データ。`npm run dev:mock` は常に模擬)。http://127.0.0.1:3000 を開く\n3. `npm test` が緑であることを確かめる (テストは模擬サーバ。本物に向けるなら `npm run test:staging`)\n4. 接続先を切り替える (ステージングは、いまは本番の写し。架空データに置き換わるまでは担当者に頼まれた確認のときだけ): `npx github:loogo-inc/cpos-kit connect` (ステージング) / `.env` を模擬に戻すなら `npx github:loogo-inc/cpos-kit create` の mock と同じ 2 行'
       : '1. 見本コードは入っていない。好きな言語・構成で作る\n2. `npx github:loogo-inc/cpos-kit fake` でKIT 模擬サーバを起動し、http://127.0.0.1:4300 を呼ぶ (Bearer は cpos_app_ で始まれば通る)\n3. `cpos.manifest.json` を公開 URL の直下で配信する'
   };
   const written = [];
@@ -327,7 +329,7 @@ async function create() {
     } else {
       out('  npm run dev      # 模擬サーバと一緒に起動 → http://127.0.0.1:3000 (localhost ではなく 127.0.0.1。cookie が合う方)');
       out('  npm test');
-      out('  ステージングの URL とトークンを受け取ったら: npx github:loogo-inc/cpos-kit connect → npm run dev');
+      out('  ステージングが架空データに置き換わり、URL とトークンを受け取ったら: npx github:loogo-inc/cpos-kit connect → npm run dev');
     }
   } else {
     out('  docs/PRODUCT.md に何を作るかを書く');
@@ -336,6 +338,15 @@ async function create() {
   out('  AI ツールで開く。CPOS のことを頼むときは /cpos (Codex は $cpos)');
   out('  作業が複数セッションにまたがりそうなら: npx github:loogo-inc/cpos-kit tickets init   # 後から入れられるチケット台帳 (AI の物忘れと優先度の見失い対策)');
   guide(appId, name, { afterCreate: true });
+}
+
+// ---- ステージングの注意 ---------------------------------------------------
+// ステージングが架空データに置き換わるまでの措置。ステージングにつなぐ入口 (create の staging・connect・token) で必ず出す。
+// 置き換わったら、この関数と呼び出しを消し、create の既定をステージングに戻す (kit/test/connection-mode.test.mjs も同時に)。
+function stagingWarning() {
+  out('★ 注意: いまのステージングは本番の写しです (架空データに置き換わるまで、本番と同じ扱い)。');
+  out('  作るのは模擬サーバで (npm run dev:mock)。ステージングにつなぐのは、CPOS の担当者に頼まれた確認のときだけ。');
+  out('  そこで見えた利用者・職員の情報を、コード・テスト・ログ・AI への依頼文に写さない。');
 }
 
 // ---- token guide -------------------------------------------------------
@@ -347,6 +358,8 @@ async function tokenGuide(manifestPath, APP) {
   const appId = m.appId ?? '<appId>';
   const app = APP ?? String(appId).toUpperCase().replace(/[^A-Z0-9]+/g, '_');
   const scopes = Array.isArray(m.apiTokenScopes) && m.apiTokenScopes.length ? m.apiTokenScopes : [`app-data:${appId}:read`, `app-data:${appId}:write`, `app-data:${appId}:delete`, 'facilities:read', 'master-users:read'];
+  stagingWarning();
+  out('');
   out('本物の CPOS につなぐとき (まずステージングで):');
   out('  1. アプリを https で公開し、<公開URL>/cpos.manifest.json が開けることを確かめる (トークン無しで配信できること)');
   out('  2. CPOS の admin か app-publisher の人に、次を頼む:');
@@ -441,6 +454,8 @@ async function connect() {
   if (!existsSync(mfPath)) die('cpos.manifest.json がありません', 'cpos-kit create か adopt で作ったフォルダの中で実行してください');
   const m = JSON.parse(readFileSync(mfPath, 'utf8'));
   const APP = String(m.appId).toUpperCase().replace(/[^A-Z0-9]+/g, '_');
+  stagingWarning();
+  out('');
 
   // 端末なら聞く。端末でなければ --url と --token-file で受ける。
   // トークンをコマンドラインの引数では受けない (シェルの履歴と ps に残るため)。
@@ -552,7 +567,7 @@ function guide(appId, name, { afterCreate = false } = {}) {
   L.push('  npx github:loogo-inc/cpos-kit ui              画面の作り方 (見本・スタイル・ロゴ・色)。--open で見本をブラウザに');
   L.push('  npx github:loogo-inc/cpos-kit scopes --used    使う API から必要なスコープを出す');
   L.push('  npx github:loogo-inc/cpos-kit validate         cpos.manifest.json を確かめる');
-  L.push('  npx github:loogo-inc/cpos-kit connect          ステージング (本物) につなぐ');
+  L.push('  npx github:loogo-inc/cpos-kit connect          ステージング (本物) につなぐ (いまは担当者に頼まれた確認のときだけ。【4】)');
   L.push('  npm run verify:staging                         本物で読み書きを確かめる');
   L.push('  npx github:loogo-inc/cpos-kit update           kit を新しい版に上げる');
   L.push('  npx github:loogo-inc/cpos-kit guide            この画面をもう一度');
@@ -562,7 +577,7 @@ function guide(appId, name, { afterCreate = false } = {}) {
   L.push('');
   L.push('—— それぞれの詳しい話 ——————————————————');
   L.push('');
-  L.push('【1】動かす (接続先は .env。原則ステージング = 本物の応答で作る。模擬サーバは自分で選んだときだけ: npm run dev:mock)');
+  L.push('【1】動かす (接続先は .env。原則は模擬サーバ = 架空データで作る。npm run dev:mock は常に模擬。ステージングは【4】)');
   L.push('    npm install && npm run dev        KIT 模擬サーバと一緒に起動');
   L.push('    npm test                          緑にしてから「できた」と言う');
   L.push('');
@@ -578,6 +593,8 @@ function guide(appId, name, { afterCreate = false } = {}) {
   L.push('    → KIT 模擬サーバは manifest のスコープで検査する。宣言漏れはここで 403 になる');
   L.push('');
   L.push('【4】本物 (ステージング) につなぐ  ★登録とトークン発行は人の作業');
+  L.push('    ★ いまのステージングは本番の写し。架空データに置き換わるまでは、CPOS の担当者に頼まれた確認のときだけつなぐ');
+  L.push('      (そこで見えた利用者・職員の情報を、コード・テスト・ログ・AI への依頼文に写さない)');
   L.push('    a. アプリを https で公開し、<公開URL>/cpos.manifest.json が開けるようにする');
   L.push('    b. CPOS 管理画面「アプリ管理」→ 上段「URL から登録」にその URL を入れる');
   L.push('       (公開前なら下段「新規アプリ登録 (下書き)」で手入力)');

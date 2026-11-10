@@ -18,29 +18,29 @@ CPOS とは **HTTP でしか話せない**。DB を共有しない、CPOS のパ
 ```js
 import { createCposClient } from '@cpos/kit/client';
 const cpos = createCposClient({ baseUrl: process.env.{{APP}}_CPOS_BASE_URL, token: () => process.env.{{APP}}_CPOS_APP_TOKEN });
-await cpos.platform.me();                                   // 疎通と権限の確認
-await cpos.facilities.list();                               // 見てよい事業所
-await cpos.masterUsers.list({ facilityId });                // 事業所の利用者 (介護を受ける人。facilityId 必須)
+await cpos.platform.me(); // 疎通と権限の確認
+await cpos.facilities.list(); // 見てよい事業所
+await cpos.masterUsers.list({ facilityId }); // 事業所の利用者 (介護を受ける人。facilityId 必須)
 const notes = cpos.appData('{{appId}}');
-await notes.create('notes', { text }, { facilityId });      // 保存
-await notes.list('notes', { facilityId });                  // 一覧
-await notes.upsertBy('notes', 'masterUserId', { masterUserId, text }, { facilityId, user: masterUserId });  // 利用者 1 人に 1 件。user で本人に紐づける
-await cpos.app.transport.getPlans({ facilityId })           // CPOS の全 API が cpos.app.<機能>.<操作>() にある (一覧は kit/api.d.ts)。戻り値は生の JSON
+await notes.create('notes', { text }, { facilityId }); // 保存
+await notes.list('notes', { facilityId }); // 一覧
+await notes.upsertBy('notes', 'masterUserId', { masterUserId, text }, { facilityId, user: masterUserId }); // 利用者 1 人に 1 件。user で本人に紐づける
+await cpos.app.transport.getPlans({ facilityId }) // 全 API が cpos.app.<機能>.<操作>() にある。戻り値は生の JSON
 ```
 失敗は `CposApiError`。`err.hint` に次にやることが入る。**hint を読んで直す。握りつぶさない。**
 
 ### 開発と確認
-- 接続先は `.env` (原則ステージング = 本物。模擬サーバは `npm run dev:mock`、架空データ)。起動ログの「接続先:」で確かめる。ブラウザは **`http://127.0.0.1:3000`** (`localhost` は cookie が合わない)。
-- `npm test` (模擬) が通ってから「できた」と言う。ステージングへの切り替えは `npx github:loogo-inc/cpos-kit connect`、本物での確認は `npm run verify:staging`。
+- 接続先は `.env` (原則は模擬サーバ `npm run dev:mock` = 架空データ)。起動ログの「接続先:」で確かめる。ブラウザは **`http://127.0.0.1:3000`** (`localhost` は cookie が合わない)。
+- `npm test` (模擬) が通ってから「できた」と言う。**いまのステージングは本番の写し。** 架空データになるまで `npx github:loogo-inc/cpos-kit connect`・`npm run verify:staging` は頼まれたときだけ。
 - トークンの AppData スコープが別の appId のものしか無いときは `{{APP}}_APPDATA_APP_ID` で読み書き先だけ切り替える (connect が案内。本登録後は消す)。
 - テストで事業所 ID を固定しない (`@cpos/kit/testing` の `pickFacilities`)。固定すると本物で二度と流せない。
 - manifest を変えたら `npx github:loogo-inc/cpos-kit validate` を通し、CPOS への再登録と App Token の再発行が要ることを RESUME.md に書く。
-- **ログイン**: fastify の見本には CPOS のログイン (`fastifyLoginGate`。同じ cookie ドメインなら cpos_session 転送、それ以外は OAuth 2.1 = CPOS の Google ログイン) が付いている。node の見本には無いので KIT 模擬サーバ以外に向けて公開しない。付け方はスキル §7。
+- **ログイン**: fastify の見本には CPOS のログイン (`fastifyLoginGate`) が付いている。node の見本には無いので KIT 模擬サーバ以外に向けて公開しない。方式 (cookie 転送・OAuth 2.1) と付け方はスキル §7。
 
 ### データが要るときの手順 (依頼文に「CPOS から」と無くても、取得元の第一候補は CPOS)
 1. **CPOS の API は全部 client のメソッド** (`cpos.app.<機能>.<操作>()`、Cookie 専用は `cpos.session.*`)。一覧・引数・スコープは `node_modules/@cpos/kit/kit/api.d.ts` を grep。パスを推測して `raw()` で叩かない。
 2. **戻り値は生の JSON。項目名を推測して整形しない。** 実物を見てから列を決め、項目名は `docs/specs/<機能>/design.md` と契約テストに残す。
-3. **KIT 模擬サーバに無い API は 501** が返る。画面は「CPOS 接続待ち」にして、ステージングで確かめる。
+3. **KIT 模擬サーバに無い API は 501** が返る。画面は「CPOS 接続待ち」にして、担当者に確かめてもらう。
 4. **api.d.ts に無い機能** → 推測で叩かず、写しも作らない。`docs/cpos/asks.md` (CPOS 側に頼むことの一覧) に 1 行残し、その画面だけ「準備中」にして他は作り切り、最後に「アプリで持つか CPOS 側に頼むか」を人に聞く。
 5. **使うメソッドの scope を `cpos.manifest.json` の `apiTokenScopes` に足す。** `npx github:loogo-inc/cpos-kit scopes --used` がソースから必要なスコープを出し、足りないものを示す (全スコープの一覧は `npx github:loogo-inc/cpos-kit scopes`)。
 宣言していないスコープは App Token に付かず、KIT 模擬サーバでは動いて本物で 403 になる。足したら再登録と App Token の再発行 (スキル §6.5)。
@@ -64,7 +64,7 @@ await cpos.app.transport.getPlans({ facilityId })           // CPOS の全 API �
 1. App Token をブラウザに送る、コードやリポジトリに書く、ログに出す。
 2. 事業所 ID を省いて利用者データを取ろうとする (全事業所まとめて取る API は無い)。
 3. CPOS のユーザーのために独自のログイン (パスワード DB・JWT) を作る。CPOS のユーザーは CPOS がログインさせる。
-4. 本番の個人情報を開発環境にコピーする。開発は KIT 模擬サーバかステージングで。
+4. 本番の個人情報を開発環境にコピーする (いまはステージングも同じ)。開発は KIT 模擬サーバで。
 5. `window.confirm` / `alert` / `prompt` を使う (CPOS の画面規約。アプリ内ダイアログを使う)。
 
 ### 文書の置き場 (指示が無くてもここに書く)

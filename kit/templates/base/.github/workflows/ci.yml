@@ -18,13 +18,21 @@ jobs:
       - name: Install
         run: npm ci --no-audit --no-fund
       - run: npx cpos-kit validate
+      - name: Secret and PII scan
+        run: node node_modules/@cpos/kit/kit/ci/secret-pii-scan.mjs
       - name: Dependency audit
         run: npm audit --omit=dev --audit-level="high"
       - name: SBOM (CycloneDX)
         run: npm sbom --sbom-format cyclonedx --omit dev > sbom.cyclonedx.json
       - name: Typecheck
         run: npm run typecheck --if-present
-      - name: Test
+      - name: Test (Asia/Tokyo)
         run: npm run test --if-present
+        env:
+          TZ: Asia/Tokyo
+      - name: Test (UTC)
+        run: npm run test --if-present
+        env:
+          TZ: UTC
       - name: Build
         run: npm run build --if-present

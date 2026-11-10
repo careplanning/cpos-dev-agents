@@ -10,9 +10,11 @@ CPOS の上で動くアプリ (appId: `{{appId}}`)。`npx github:loogo-inc/cpos-
 
 ## 接続先
 
-`.env` の `{{APP}}_CPOS_BASE_URL` で決まる。https… = ステージング (原則。本物の応答)、127.0.0.1 = 模擬サーバ (架空データ)。`npm run dev` はそれに従い、`npm run dev:mock` は常に模擬。起動ログの「接続先:」で確かめる。切り替えは `npx github:loogo-inc/cpos-kit connect`。
+`.env` の `{{APP}}_CPOS_BASE_URL` で決まる。127.0.0.1 = 模擬サーバ (原則。架空データ)、https… = ステージング (いまは本番の写し。架空データに置き換わるまで担当者に頼まれた確認のときだけ)。`npm run dev` はそれに従い、`npm run dev:mock` は常に模擬。起動ログの「接続先:」で確かめる。切り替えは `npx github:loogo-inc/cpos-kit connect`。
 
 ## 本物の CPOS につなぐとき
+
+**いまのステージングは本番の写し。** 架空データに置き換わるまで、つなぐ (下の 2〜4) のは担当者に頼まれた確認のときだけ。
 
 {{authNote}}
 

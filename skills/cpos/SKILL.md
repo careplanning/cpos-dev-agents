@@ -106,10 +106,11 @@ App Token が無い状態でも起動はさせる (登録前は無いのが普�
 | 403 (事業所) | 許可されていない事業所 | `facilities.list()` にある id を使う。fail-close は仕様 |
 | 404 「facility x が見つかりません」 | 存在しない事業所 | id の打ち間違い。`facilities.list()` で確認 |
 | 404 (HTML) | 本物に無いパス | `kit/api.d.ts` を grep、`npx github:loogo-inc/cpos-kit doctor` で kit と接続先の版を比べる |
-| 501 `not_implemented` | KIT 模擬サーバに応答が無い | 本物 (ステージング) で確かめる。それまで画面は CPOS 接続待ち |
+| 501 `not_implemented` | KIT 模擬サーバに応答が無い | 本物 (ステージング) での確認を CPOS の担当者に頼む (§5)。それまで画面は CPOS 接続待ち |
 
-## 5. 接続先: 原則はステージング、模擬サーバは選んだときだけ
+## 5. 接続先: 原則は模擬サーバ、ステージングは架空データに置き換わってから
 
+- **いまのステージングは本番の写し。** 架空データに置き換わるまで、作るのは模擬サーバで。ステージングにつなぐのは CPOS の担当者に頼まれた確認のときだけ。そこで見えた利用者・職員の情報を、コード・テスト・ログ・AI への依頼文に写さない。
 - `.env` の `<APP>_CPOS_BASE_URL` が https ならステージング (本物の応答)。`127.0.0.1` なら模擬サーバ。`npm run dev` はそれに従い、`npm run dev:mock` は常に模擬。起動ログの「接続先:」を見る。
 - 切り替え: ステージングへは `npx github:loogo-inc/cpos-kit connect`。模擬へは `.env` の 2 行を `http://127.0.0.1:4300` / `cpos_app_dev` に。
 - テスト (`npm test`) は模擬サーバで動く (オフラインで通る)。本物に向けるのは `npm run test:staging` と `npm run verify:staging`。
@@ -319,7 +320,7 @@ await cpos.app.transport.postPlans({ facilityId, body: { ... } });              
 - `cpos.app.*` は App Token で呼べるもの (認証なしも含む)。`cpos.session.*` は管理画面のセッション Cookie でしか呼べないもので、ログインを引き継ぐアプリ (§7) で `createCposClient({ cookie })` にしたときだけ使える。
 - 止まるのは 3 つだけ: 必須パラメータの欠け、`facilityId` の付け忘れ (kit が呼ぶ前に止める)、OpenAPI に無いパス (`raw()` が拒む)。
 - **戻り値は生の JSON。応答の形は OpenAPI にほとんど無い。** 推測で項目名を決めて整形しない。まず生の JSON を `<pre>` で出し、実物を見てから列を決める。決めた項目名は `docs/specs/<機能>/design.md` に書き、契約テストに残す。
-- **KIT 模擬サーバに応答があるのは一部だけ** (api.d.ts の JSDoc に「模擬サーバ: あり / 無し」。shifts の計画・割当・勤務区分、employees / qualified-persons / trainings / fte / staffing-standards は 2026-09-14 から あり)。無いものは 501。画面には「CPOS との接続を担当者が確認中です」と出し、ステージングにつないで確かめる (`npm run verify:staging`)。
+- **KIT 模擬サーバに応答があるのは一部だけ** (api.d.ts の JSDoc に「模擬サーバ: あり / 無し」。shifts の計画・割当・勤務区分、employees / qualified-persons / trainings / fte / staffing-standards は 2026-09-14 から あり)。無いものは 501。画面には「CPOS との接続を担当者が確認中です」と出し、確認は担当者に頼む (いまのステージングは本番の写しなので、架空データに置き換わるまで自分ではつながない。§5)。
 - **api.d.ts に無いもの** だけ「CPOS に無い」。アプリ専用のデータとして AppData に持つか、asks.md に「CPOS にあるか確認」と書く。
 - **スコープ**: `npx github:loogo-inc/cpos-kit scopes --used` がソースが呼ぶメソッドから必要なスコープを出し、manifest に足りないものを示す。`npx github:loogo-inc/cpos-kit scopes 送迎` で語から引く。CPOS が知るスコープは 160 種 + アプリ固有の雛形 4 種 (`app-data:<appId>:read/write/delete`、`apps:<appId>:ai:run`) で、それ以外の文字列を発行しても要求する API が無い。
 - **kit を上げる**: `npx github:loogo-inc/cpos-kit update` (git をきれいにしてから)。kit のファイルと依存を上げてコミットし、`docs/cpos/UPGRADE.md` に CHANGELOG の差分を書く。頼まれて実装を直すときは UPGRADE.md の「既存アプリへの影響」を 1 つずつ見て、直すか、要らない理由を書き、`npm test` を通してコミット。外すなら `npx github:loogo-inc/cpos-kit remove --apply` (置いたものだけ取り除く)。

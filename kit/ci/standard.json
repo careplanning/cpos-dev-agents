@@ -1,13 +1,15 @@
 {
-  "$comment": "CPOS のアプリの標準 CI の正本 (cpos-kit が持つ)。kit の雛形 .github/workflows/ci.yml はこの手順そのもの。kit を使っていないアプリには、CPOS が同じ手順を Cloud Build の CI (.ci/profile.json) として配る (CPOS は写しを持ち、ずれをテストで止める)。手順を変えるときはここを直してから CPOS の写しを更新する。",
-  "version": "2026-10-28.1",
+  "$comment": "CPOS のアプリの標準 CI の正本 (cpos-kit が持つ)。kit の雛形 .github/workflows/ci.yml はこの手順そのもの。kit を使っていないアプリには、CPOS が同じ手順を Cloud Build の CI (.ci/profile.json) として配る (CPOS は写しを持ち、ずれをテストで止める)。手順を変えるときはここを直してから CPOS の写しを更新する。env はその手順だけに足す環境変数。source のある手順は、その kit のファイルを run が読む場所 (.ci/) に 1 バイトも変えずに置く (CPOS が配る)。kitRun は kit を入れたアプリでの同じ手順 (kit の中の写しを読む)。",
+  "version": "2026-11-10.1",
   "node": "22",
   "steps": [
     { "name": "Install", "run": "npm ci --no-audit --no-fund" },
+    { "name": "Secret and PII scan", "run": "node .ci/secret-pii-scan.mjs", "kitRun": "node node_modules/@cpos/kit/kit/ci/secret-pii-scan.mjs", "source": "kit/ci/secret-pii-scan.mjs" },
     { "name": "Dependency audit", "run": "npm audit --omit=dev --audit-level=\"high\"" },
     { "name": "SBOM (CycloneDX)", "run": "npm sbom --sbom-format cyclonedx --omit dev > sbom.cyclonedx.json" },
     { "name": "Typecheck", "run": "npm run typecheck --if-present" },
-    { "name": "Test", "run": "npm run test --if-present" },
+    { "name": "Test (Asia/Tokyo)", "run": "npm run test --if-present", "env": { "TZ": "Asia/Tokyo" } },
+    { "name": "Test (UTC)", "run": "npm run test --if-present", "env": { "TZ": "UTC" } },
     { "name": "Build", "run": "npm run build --if-present" }
   ],
   "kitSteps": [
