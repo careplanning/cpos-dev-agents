@@ -1,5 +1,5 @@
 // 生成物。kit の保守者が生成器 (gen-api) で spec/cpos-openapi.json から作る。手で編集しない。
-// 生成元: CPOS OpenAPI 0.1.0 / revision main@8ef93a17 / 2026-11-09 / 1656 operations
+// 生成元: CPOS OpenAPI 0.1.0 / revision main@d0d5d125 / 2026-11-15 / 1659 operations
 
 export interface CposApi_app {
   alerts: {
@@ -2570,6 +2570,15 @@ export interface CposApi_app {
     /** mu の直し (付け違い・統合で取り残された記録) の下見で、誰の記録が何件直る予定かを氏名付きで返す (書き込みなし)
      * GET /api/user-id-maintenance/v1/repair-people / scope master-users:write / 認証 both / 応答の形: 未確認 (生の JSON。項目名を推測しない) / 模擬サーバ: 無し (501) */
     getV1RepairPeople(args?: { facilityId?: string }): Promise<unknown>;
+    /** 登録の時刻が 2026-06-17 より前に書き換わった方の、自分の行 (割当・事業所別項目) に不変 ID を書き足す予定を下見する (種類ごとに書き足す件数と書かない理由ごとの件数、事業所ごとの件数、対象の人数、名簿に戻る人数 rosterEffectAfter、実行に渡す planDigest、見分けられない場合の説明 limitation。facilityId で 1 事業所に絞れる。includeUnverified=1 で、作られた所が分からない仮番号の行と登録の時刻が確かな方の行も含める下見 (unverifiedLimitation に受け入れる危うさ)。氏名・番号・不変 ID・行の id は返さない。書き込みなし)
+     * GET /api/user-id-maintenance/v1/row-owner-backfill / scope master-users:write / 認証 both / 応答の形: 未確認 (生の JSON。項目名を推測しない) / 模擬サーバ: 無し (501) */
+    getV1RowOwnerBackfill(args?: { facilityId?: string }): Promise<unknown>;
+    /** 下見の planDigest を付けて、不変 ID の書き足しを実行する ({ confirm: true, planDigest, facilityId?, includeUnverified? }。includeUnverified は下見と同じ指定にする)。計画が下見と違えば 409 (もう一度下見する)。書く直前に行を読み直し、不変 ID が既にある行は書かない。書いた・飛ばした・失敗した件数だけ返し、監査にも件数だけ残す
+     * POST /api/user-id-maintenance/v1/row-owner-backfill / scope master-users:write / 認証 both / 応答の形: 未確認 (生の JSON。項目名を推測しない) / 模擬サーバ: 無し (501) */
+    postV1RowOwnerBackfill(args?: { body?: unknown; facilityId?: string }): Promise<unknown>;
+    /** 事業所の割当・事業所別項目の行がどの利用者のものと決まるかを件数で返す (名簿から外れる人数つき。ケアプラン連携 CSV の記録の件数 exchangeRecords つき。不変 ID の無い記録のうち、以前の取込の記録 legacy と、受け取った batch が取込済みの記録 receivedDatedInAppliedBatch を、決まりで結ぶ件数・取込の証拠で結ぶ件数・結ばない理由ごとの件数 notTied に分ける。取込の証拠で結ぶ件数のうち、その batch のその番号の記録に、だれのものか書いた記録が無いので証拠だけで結んだ件数 tiedByImportEvidenceWithNoRecordIdentified と、生年月日と、氏名かふりがなの 2 つのうち 1 つが利用者の登録と違うのに結んだ件数 tiedByImportEvidenceWithOnePointDiffering と、2 つのうち 1 つしか比べられず、その 1 つが合うので結んだ件数 tiedByImportEvidenceOnOnePoint を別に数える。結ばない理由には contradicts-person-document (2 つとも違う)・unidentified-beside-identified-records (だれのものか書いていない記録で、同じ batch のその番号のほかの記録には書いてある)・not-confirmed-against-person-document (比べられるものが利用者の登録と合わない、または比べられるものが無い) がある。氏名・番号は返さない。書き込みなし)
+     * GET /api/user-id-maintenance/v1/row-owner-check / scope master-users:write / 認証 both / 応答の形: 未確認 (生の JSON。項目名を推測しない) / 模擬サーバ: 無し (501) */
+    getV1RowOwnerCheck(args?: { facilityId?: string }): Promise<unknown>;
     /** 利用者が紐づいていないアプリの記録を氏名でまとめ、候補の利用者を返す (書き込みなし)
      * GET /api/user-id-maintenance/v1/unlinked-app-data / scope master-users:write / 認証 both / 応答の形: 未確認 (生の JSON。項目名を推測しない) / 模擬サーバ: 無し (501) */
     getV1UnlinkedAppData(args?: { facilityId?: string }): Promise<unknown>;

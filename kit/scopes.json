@@ -1,9 +1,9 @@
 {
  "generatedFrom": {
   "version": "0.1.0",
-  "revision": "main@8ef93a17",
-  "fetchedAt": "2026-11-09",
-  "operations": 1656
+  "revision": "main@d0d5d125",
+  "fetchedAt": "2026-11-15",
+  "operations": 1659
  },
  "note": "CPOS が知る全スコープ (OpenAPI の oauth2 scopes) と、それを要求する operation の数。{appId} を含むものは雛形 (appId を入れて使う)。生成物。手で編集しない",
  "scopes": [
@@ -1460,7 +1460,7 @@
    "template": false,
    "known": true,
    "adminOnly": false,
-   "operations": 7,
+   "operations": 10,
    "ns": [
     "app"
    ],

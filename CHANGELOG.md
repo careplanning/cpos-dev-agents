@@ -5,6 +5,11 @@ v1 の間は API の削除をしない (deprecated の印だけ)。
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-11-15
+
+### Added
+- client に操作が 3 つ増えた (CPOS の公式 OpenAPI から生成): `app.userIdMaintenance.getV1RowOwnerCheck`、`app.userIdMaintenance.getV1RowOwnerBackfill`、`app.userIdMaintenance.postV1RowOwnerBackfill`。
+
 ## [0.15.0] - 2026-11-10
 
 ### Added
